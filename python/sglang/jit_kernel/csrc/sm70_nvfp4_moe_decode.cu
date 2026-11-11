@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Small-batch NVFP4 MoE decode for Qwen3.8 Flash Next on Volta (SM70).
 //
-// Marlin is an excellent general grouped-GEMM kernel, but this model's TP4
+// Marlin is an excellent general grouped-GEMM kernel, but this model's TP4/TP8
 // decode shape is unusually skinny: ten independently routed rows, K=2560,
-// and a local expert width of only 160.  Padding every selected expert to an
-// 8-row MMA tile leaves most tensor-core work empty.  These kernels instead
+// and local expert widths of 160 (TP4) or 96 (padded TP8). Padding each
+// selected expert to an 8-row MMA tile leaves most tensor-core work empty.
+// These kernels instead
 // stream the already-repacked Marlin weights as logical groups of eight output
 // columns.  Split-K exposes enough parallelism for gate/up; down runs one
 // independent work item per (route, 8 output columns).  The dot products use
@@ -26,13 +27,10 @@ namespace sm70_nvfp4_moe {
 constexpr int kExperts = 512;
 constexpr int kTopK = 10;
 constexpr int kHidden = 2560;
-constexpr int kIntermediate = 160;
-constexpr int kGateUp = 2 * kIntermediate;
 constexpr int kGroupSize = 16;
 constexpr int kSplitK = 40;
-constexpr int kDownSplitK = 5;
 // At batch one, 256 threads give gate/up only 63 CTAs for 80 Volta SMs.
-// Two warps per CTA expose 250 CTAs without changing the reduction order.
+// Two warps per CTA expose 250 (TP4) or 150 (TP8) CTAs at batch one.
 constexpr int kThreads = 64;
 constexpr float kMarlinScaleCompensation = 1.0f;
 
@@ -248,14 +246,15 @@ __device__ __forceinline__ void load_scales8(const uint8_t* encoded, half2* out)
   }
 }
 
-template <bool VectorScales>
+template <int Intermediate, bool VectorScales>
 __global__ void __launch_bounds__(kThreads, 2)
 gate_up_partial_kernel(const __half* __restrict__ input,
                        const uint32_t* __restrict__ weight,
                        const uint8_t* __restrict__ scales,
                        const int* __restrict__ topk_ids,
-                       int num_routes,
+                       int num_routes, int num_experts,
                        float* __restrict__ partials) {
+  constexpr int kGateUp = 2 * Intermediate;
   constexpr int kQwords = kGateUp / 8;
   constexpr int kGroups = kHidden / kGroupSize;
   constexpr int kGroupsPerSplit = kGroups / kSplitK;
@@ -272,7 +271,7 @@ gate_up_partial_kernel(const __half* __restrict__ input,
   const int route = split_route / kSplitK;
   const int token = route / kTopK;
   const int expert = topk_ids[route];
-  if (expert < 0 || expert >= kExperts) {
+  if (expert < 0 || expert >= num_experts) {
     return;
   }
   const int n_base = qword * 8;
@@ -316,12 +315,15 @@ gate_up_partial_kernel(const __half* __restrict__ input,
   }
 }
 
+template <int Intermediate>
 __global__ void __launch_bounds__(kThreads, 2)
 gate_up_reduce_silu_kernel(const float* __restrict__ partials,
                            const float* __restrict__ global_scales,
                            const int* __restrict__ topk_ids,
-                           int num_routes,
+                           int num_routes, int num_experts,
                            __half* __restrict__ activated) {
+  constexpr int kIntermediate = Intermediate;
+  constexpr int kGateUp = 2 * Intermediate;
   const int work = static_cast<int>(blockIdx.x) * kThreads + threadIdx.x;
   const int kTotal = num_routes * kIntermediate;
   if (work >= kTotal) {
@@ -330,7 +332,7 @@ gate_up_reduce_silu_kernel(const float* __restrict__ partials,
   const int route = work / kIntermediate;
   const int n = work - route * kIntermediate;
   const int expert = topk_ids[route];
-  if (expert < 0 || expert >= kExperts) {
+  if (expert < 0 || expert >= num_experts) {
     activated[work] = __float2half(0.0f);
     return;
   }
@@ -349,7 +351,7 @@ gate_up_reduce_silu_kernel(const float* __restrict__ partials,
   activated[work] = __float2half_rn((gate / (1.0f + __expf(-gate))) * up);
 }
 
-template <bool VectorScales>
+template <int Intermediate, int DownSplitK, bool VectorScales>
 __global__ void __launch_bounds__(kThreads, 2)
 down_partial_kernel(const __half* __restrict__ activated,
                     const uint32_t* __restrict__ weight,
@@ -357,8 +359,10 @@ down_partial_kernel(const __half* __restrict__ activated,
                     const float* __restrict__ global_scales,
                     const int* __restrict__ topk_ids,
                     const float* __restrict__ topk_weights,
-                    int num_routes,
+                    int num_routes, int num_experts,
                     float* __restrict__ partials) {
+  constexpr int kIntermediate = Intermediate;
+  constexpr int kDownSplitK = DownSplitK;
   constexpr int kQwords = kHidden / 8;
   constexpr int kGroups = kIntermediate / kGroupSize;
   constexpr int kGroupsPerSplit = kGroups / kDownSplitK;
@@ -377,7 +381,7 @@ down_partial_kernel(const __half* __restrict__ activated,
   const int n_base = qword * 8;
   float* out = partials +
                (route * kDownSplitK + split) * kHidden + n_base;
-  if (expert < 0 || expert >= kExperts) {
+  if (expert < 0 || expert >= num_experts) {
 #pragma unroll
     for (int p = 0; p < 8; ++p) {
       out[p] = 0.0f;
@@ -424,10 +428,12 @@ down_partial_kernel(const __half* __restrict__ activated,
   }
 }
 
+template <int DownSplitK>
 __global__ void __launch_bounds__(kThreads, 2)
 down_reduce_kernel(const float* __restrict__ partials,
                    int batch_size,
                    __half* __restrict__ output) {
+  constexpr int kDownSplitK = DownSplitK;
   const int work = static_cast<int>(blockIdx.x) * kThreads + threadIdx.x;
   if (work >= batch_size * kHidden) {
     return;
@@ -446,18 +452,43 @@ down_reduce_kernel(const float* __restrict__ partials,
   output[work] = __float2half_rn(sum);
 }
 
-void decode(torch::Tensor input, torch::Tensor w13, torch::Tensor w2,
+template <int Intermediate, int DownSplitK>
+void decode_impl(torch::Tensor input, torch::Tensor w13, torch::Tensor w2,
             torch::Tensor w13_scales, torch::Tensor w2_scales,
             torch::Tensor w13_global, torch::Tensor w2_global,
             torch::Tensor topk_ids, torch::Tensor topk_weights,
             torch::Tensor gate_up_partials, torch::Tensor activated,
             torch::Tensor down_partials, torch::Tensor output) {
+  constexpr int kIntermediate = Intermediate;
+  constexpr int kGateUp = 2 * Intermediate;
+  // Both widths accumulate 32 down-projection inputs per FP16 partial:
+  // five splits for I=160, three for I=96.
+  constexpr int kDownSplitK = DownSplitK;
+  static_assert(Intermediate % kGroupSize == 0);
+  static_assert((Intermediate / kGroupSize) % DownSplitK == 0);
   TORCH_CHECK(input.is_cuda() && input.scalar_type() == at::kHalf &&
                   input.dim() == 2 && input.size(0) >= 1 &&
-                  input.size(0) <= 4 && input.size(1) == kHidden,
-              "input must be CUDA FP16 [M, 2560], 1 <= M <= 4");
+                  input.size(0) <= 32 && input.size(1) == kHidden,
+              "input must be CUDA FP16 [M, 2560], 1 <= M <= 32");
   const int batch_size = static_cast<int>(input.size(0));
   const int num_routes = batch_size * kTopK;
+  TORCH_CHECK(w13.dim() == 3 && w13.size(0) >= 1 && w13.size(0) <= kExperts,
+              "w13 must contain 1..512 experts");
+  const int num_experts = static_cast<int>(w13.size(0));
+  for (const auto& tensor : {input, w13, w2, w13_scales, w2_scales,
+                            w13_global, w2_global, topk_ids, topk_weights,
+                            gate_up_partials, activated, down_partials, output}) {
+    TORCH_CHECK(tensor.device() == input.device() && tensor.is_contiguous(),
+                "decode tensors must be contiguous and on the input CUDA device");
+  }
+  TORCH_CHECK(w13.sizes() == at::IntArrayRef({num_experts, kHidden / 16, kGateUp * 2}) &&
+              w2.sizes() == at::IntArrayRef({num_experts, kIntermediate / 16, kHidden * 2}),
+              "Marlin weight shapes do not match intermediate width ", Intermediate);
+  TORCH_CHECK(w13_scales.sizes() == at::IntArrayRef({num_experts, kHidden / 16, kGateUp}) &&
+              w2_scales.sizes() == at::IntArrayRef({num_experts, kIntermediate / 16, kHidden}),
+              "Marlin scale shapes do not match intermediate width ", Intermediate);
+  TORCH_CHECK(w13_global.numel() == num_experts && w2_global.numel() == num_experts,
+              "global scales must contain one value per expert");
   TORCH_CHECK(w13.is_cuda() && w13.scalar_type() == at::kInt,
               "w13 must be CUDA int32 Marlin weights");
   TORCH_CHECK(w2.is_cuda() && w2.scalar_type() == at::kInt,
@@ -492,45 +523,64 @@ void decode(torch::Tensor input, torch::Tensor w13, torch::Tensor w2,
   const cudaStream_t stream = at::cuda::getCurrentCUDAStream(input.get_device());
   const int gate_up_work = num_routes * kSplitK * (kGateUp / 8);
   const auto gate_kernel = (reinterpret_cast<uintptr_t>(w13_scales.data_ptr()) % 8 == 0)
-                               ? gate_up_partial_kernel<true>
-                               : gate_up_partial_kernel<false>;
+                               ? gate_up_partial_kernel<Intermediate, true>
+                               : gate_up_partial_kernel<Intermediate, false>;
   gate_kernel<<<(gate_up_work + kThreads - 1) / kThreads, kThreads,
                            0, stream>>>(
       reinterpret_cast<const __half*>(input.data_ptr<at::Half>()),
       reinterpret_cast<const uint32_t*>(w13.data_ptr<int>()),
       reinterpret_cast<const uint8_t*>(w13_scales.data_ptr()),
-      topk_ids.data_ptr<int>(), num_routes, gate_up_partials.data_ptr<float>());
+      topk_ids.data_ptr<int>(), num_routes, num_experts, gate_up_partials.data_ptr<float>());
   const int activated_work = num_routes * kIntermediate;
-  gate_up_reduce_silu_kernel<<<
+  gate_up_reduce_silu_kernel<Intermediate><<<
       (activated_work + kThreads - 1) / kThreads, kThreads, 0, stream>>>(
       gate_up_partials.data_ptr<float>(), w13_global.data_ptr<float>(),
-      topk_ids.data_ptr<int>(), num_routes,
+      topk_ids.data_ptr<int>(), num_routes, num_experts,
       reinterpret_cast<__half*>(activated.data_ptr<at::Half>()));
   const int down_work = num_routes * kDownSplitK * (kHidden / 8);
   const auto down_kernel = (reinterpret_cast<uintptr_t>(w2_scales.data_ptr()) % 8 == 0)
-                               ? down_partial_kernel<true>
-                               : down_partial_kernel<false>;
+                               ? down_partial_kernel<Intermediate, DownSplitK, true>
+                               : down_partial_kernel<Intermediate, DownSplitK, false>;
   down_kernel<<<(down_work + kThreads - 1) / kThreads, kThreads, 0,
                         stream>>>(
       reinterpret_cast<const __half*>(activated.data_ptr<at::Half>()),
       reinterpret_cast<const uint32_t*>(w2.data_ptr<int>()),
       reinterpret_cast<const uint8_t*>(w2_scales.data_ptr()),
       w2_global.data_ptr<float>(), topk_ids.data_ptr<int>(),
-      topk_weights.data_ptr<float>(), num_routes, down_partials.data_ptr<float>());
+      topk_weights.data_ptr<float>(), num_routes, num_experts, down_partials.data_ptr<float>());
   const int output_work = batch_size * kHidden;
-  down_reduce_kernel<<<(output_work + kThreads - 1) / kThreads, kThreads, 0,
+  down_reduce_kernel<DownSplitK><<<(output_work + kThreads - 1) / kThreads, kThreads, 0,
                        stream>>>(down_partials.data_ptr<float>(), batch_size,
                                 reinterpret_cast<__half*>(
                                     output.data_ptr<at::Half>()));
   C10_CUDA_KERNEL_LAUNCH_CHECK();
 }
 
+void decode(torch::Tensor input, torch::Tensor w13, torch::Tensor w2,
+            torch::Tensor w13_scales, torch::Tensor w2_scales,
+            torch::Tensor w13_global, torch::Tensor w2_global,
+            torch::Tensor topk_ids, torch::Tensor topk_weights,
+            torch::Tensor gate_up_partials, torch::Tensor activated,
+            torch::Tensor down_partials, torch::Tensor output) {
+  TORCH_CHECK(w2.dim() == 3 && (w2.size(1) == 6 || w2.size(1) == 10),
+              "decode supports padded TP8 I=96 or TP4 I=160 Marlin weights");
+  if (w2.size(1) == 6) {
+    decode_impl<96, 3>(input, w13, w2, w13_scales, w2_scales,
+                      w13_global, w2_global, topk_ids, topk_weights,
+                      gate_up_partials, activated, down_partials, output);
+  } else {
+    decode_impl<160, 5>(input, w13, w2, w13_scales, w2_scales,
+                       w13_global, w2_global, topk_ids, topk_weights,
+                       gate_up_partials, activated, down_partials, output);
+  }
+}
+
 void topk10_softmax(torch::Tensor logits, torch::Tensor topk_weights,
                     torch::Tensor topk_ids) {
   TORCH_CHECK(logits.is_cuda() && logits.is_contiguous() && logits.dim() == 2 &&
-                  logits.size(0) >= 1 && logits.size(0) <= 4 &&
+                  logits.size(0) >= 1 && logits.size(0) <= 32 &&
                   logits.size(1) == kExperts,
-              "logits must be contiguous CUDA [M, 512], 1 <= M <= 4");
+              "logits must be contiguous CUDA [M, 512], 1 <= M <= 32");
   const int batch_size = static_cast<int>(logits.size(0));
   TORCH_CHECK(logits.scalar_type() == at::kHalf ||
                   logits.scalar_type() == at::kFloat,

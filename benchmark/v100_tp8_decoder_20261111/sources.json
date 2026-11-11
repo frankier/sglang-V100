@@ -1,0 +1,17 @@
+{
+  "job_id": 3048522,
+  "host": "dgx1-02",
+  "staged_sha256": {
+    "python/sglang/jit_kernel/sm70_nvfp4_moe_decode.py": "09acbe4dcdf9ddd29d845ab87d173cf2b2a359125dffe79a73a834dca03c2613",
+    "python/sglang/jit_kernel/csrc/sm70_nvfp4_moe_decode.cu": "727e5681b046d33fb68994da1cae3b2d56df0a54a1aef7116d50b9dbe6de6ee2",
+    "python/sglang/srt/layers/moe/moe_runner/marlin.py": "8957ffe2f58057db6a5a1f315c68690e547559532d5e9231d76e093ff66b99cf",
+    "test/registered/unit/layers/moe/test_sm70_nvfp4_moe_decode.py": "44c07d7ab0f4d9b115525580451099bcd9bab98cf9254bf7002f02d3b59f8af1",
+    "test/manual/kernels/moe/benchmark_sm70_nvfp4_decode.py": "acff0140ccaa7f2b227aa6e7adfe4b2fc887cae8e7007e2e7f92ee3c172aea7f"
+  },
+  "original_image_sha256": {
+    "image-decoder.py": "959e706d19838975b079f1dc768124f578d96c91e63c2acf6ceb310b161e3fe4",
+    "image-decoder.cu": "58167218b5d9329179e94b1282ead4602976fdbeceb70f9102111d1a93930cdf",
+    "image-marlin.py": "51968f0d527ddb0cdb6230e58e4dd385502f20571935ae709a45126df88fd45e"
+  },
+  "sif_sha256": "71cd36adfb131766e141459828b8cdc27a72b47745557ed07cc4f9c36a8c1a31"
+}

@@ -5,6 +5,10 @@ Checkpoint: `RadixArk/Qwen3.8-Flash-Next-NVFP4`, revision
 Runtime baseline: published v5.1 image, digest
 `sha256:80dccc86c3383cc81b0188e67cdd74961e9c4038a3986e1d0fd87e73733261e7`.
 
+This records the original TP8 generic-Marlin baseline. See the follow-up
+[TP8 decoder report](../v100_tp8_decoder_20261111/README.md) for the specialized
+small-batch implementation and its validation.
+
 ## Fixes
 
 1. TP8 shards the 640-wide routed expert intermediate to 80. Fused gate/up
@@ -23,8 +27,8 @@ Runtime baseline: published v5.1 image, digest
    route stays intact.
 
 The TP4 gated expert width (160) already satisfies the repacker and is returned
-without allocation or parameter copies. TP8 uses generic Marlin MoE rather
-than the existing specialized TP4 small-batch decode implementation.
+without allocation or parameter copies. In the run recorded here, TP8 used
+generic Marlin MoE; the follow-up implementation adds TP8 specialization.
 
 ## Published-image integration
 
@@ -111,7 +115,7 @@ HTTP overhead. The recommendation follows from these single-server results
 and topology; routed two-replica throughput was not measured here.
 
 The DGX-1 has two fully connected four-GPU NVLink groups, and the fork's fastest
-small-batch expert kernels are specialized to TP4. This is ordinary replica
+small-batch expert kernels in this baseline were specialized to TP4. This is ordinary replica
 data parallelism, with a separate model and KV pool per replica. It is distinct
 from DP attention or expert parallelism; see the
 [SGLang DP guide](https://github.com/sgl-project/sglang/blob/main/docs/docs/advanced_features/dp_dpa_smg_guide.mdx).
