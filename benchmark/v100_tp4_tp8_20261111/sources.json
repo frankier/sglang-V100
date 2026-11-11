@@ -1,0 +1,15 @@
+{
+  "checkout_base": "e17bef0c27a97bb0b04e5871c5a219badf17c619",
+  "base_image": "sha256:80dccc86c3383cc81b0188e67cdd74961e9c4038a3986e1d0fd87e73733261e7",
+  "checkpoint_revision": "7b719225242aacd3dbd3f9407468c2ee9a9d2594",
+  "sha256": {
+    "python/sglang/srt/layers/attention/qwen_sparse_attn_backend.py": "788f5d699f6908d6bfbb9d46af4d9486ff3526a6269353410f75afe1c71cf76f",
+    "python/sglang/srt/layers/quantization/marlin_utils.py": "f0d7feefbd193f79d0f0986d28544d866c1dd20b74b1a42d8965a51f32299d24",
+    "python/sglang/srt/layers/quantization/modelopt_quant.py": "40d8203c912ec266e2d2969d27afd05bbbca7a74991574261b4476af8e413be4",
+    "test/manual/attention/test_sm70_qsa_tp.py": "4a0e79be1435cf27f140787ce2df689cfd0d0a3dbbd37f29e8e33f5efb37dea4",
+    "test/manual/quant/test_sm70_nvfp4_tp.py": "7ec555fd288b5b07f83ba33c948132cb793764bf8138cd8f926c97773716b546",
+    "test/registered/unit/layers/quantization/test_sm70_nvfp4_padding.py": "d90441be8de858e49b9093b6f25ae007185b2115130c46708a4796d2eb008357",
+    "patches/v100-qwen38-v5.1-tp8-qsa.patch": "ccde8feabf4d1b7d6816ffed61481ea91ddfd97c334736263081f65844072747",
+    "docker/v100-qwen38-tp.Dockerfile": "96ae275e936769d5d3b1f4d5f7cc79e55c0de9a281e9c58b6b401c0d87bc06ab"
+  }
+}

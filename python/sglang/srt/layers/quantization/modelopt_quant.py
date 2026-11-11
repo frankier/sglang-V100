@@ -2000,9 +2000,24 @@ class ModelOptNvFp4FusedMoEMethod(FusedMoEMethodBase):
                 gptq_marlin_moe_repack,
             )
             from sglang.srt.layers.quantization.marlin_utils import (
+                sm70_nvfp4_marlin_pad_moe_weights,
                 sm70_nvfp4_marlin_process_global_scale,
                 sm70_nvfp4_marlin_process_scales,
             )
+
+            padded_weights = sm70_nvfp4_marlin_pad_moe_weights(
+                layer.w13_weight,
+                layer.w2_weight,
+                layer.w13_weight_scale,
+                layer.w2_weight_scale,
+                layer.moe_runner_config.is_gated,
+            )
+            for name, weight in zip(
+                ("w13_weight", "w2_weight", "w13_weight_scale", "w2_weight_scale"),
+                padded_weights,
+            ):
+                if weight is not getattr(layer, name):
+                    copy_or_rebind_param(layer, name, weight)
 
             def _repack_nvfp4_weight(weight: torch.Tensor) -> torch.Tensor:
                 # ModelOpt: [E, N, K/2] uint8, low/high nibbles are adjacent K.

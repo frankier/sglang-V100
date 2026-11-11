@@ -1,0 +1,81 @@
+{
+  "job": 3038851,
+  "host": "dgx1-02",
+  "server": {
+    "status": "ready",
+    "tp_size": 4,
+    "dtype": "float16",
+    "kv_cache_dtype": "auto",
+    "context_length": 262144,
+    "max_total_num_tokens": 277280,
+    "max_req_input_len": 262138,
+    "max_running_requests": 8,
+    "speculative_algorithm": "EAGLE",
+    "speculative_num_steps": 3,
+    "speculative_num_draft_tokens": 4
+  },
+  "resolved_kv_dtype": "float16",
+  "basic_answers": [
+    "4",
+    "4",
+    "4",
+    "4"
+  ],
+  "throughput": [
+    {
+      "clients": 1,
+      "completion_tokens": 256,
+      "seconds": 2.617542202118784,
+      "aggregate_tokens_per_second": 97.80167051090116
+    },
+    {
+      "clients": 4,
+      "completion_tokens": 1024,
+      "seconds": 4.443990019150078,
+      "aggregate_tokens_per_second": 230.42355981614963
+    }
+  ],
+  "capacity": {
+    "clients": 1,
+    "seconds": 100.53072119900025,
+    "input": "262016 repetitions of token 42 or 43; distinct prefixes",
+    "metadata": [
+      {
+        "id": "66e021669a8e4f7fb9fbee208257cbdc",
+        "finish_reason": {
+          "type": "length",
+          "length": 64
+        },
+        "prompt_tokens": 262016,
+        "weight_version": "default",
+        "num_retractions": 0,
+        "reasoning_tokens": 0,
+        "completion_tokens": 64,
+        "cached_tokens": 0,
+        "cached_tokens_details": null,
+        "dp_rank": null,
+        "e2e_latency": 100.47644518502057,
+        "spec_accept_rate": 0.12318840579710146,
+        "spec_accept_length": 1.391304347826087,
+        "spec_num_correct_drafts": 17,
+        "spec_num_proposed_drafts": 138,
+        "spec_verify_ct": 46,
+        "spec_accepted_drafts": 17,
+        "spec_proposed_drafts": 138,
+        "spec_correct_drafts_histogram": [
+          37,
+          4,
+          2,
+          3
+        ],
+        "spec_accept_histogram": [
+          37,
+          4,
+          2,
+          3
+        ],
+        "response_sent_to_client_ts": 1794395955.0960999
+      }
+    ]
+  }
+}

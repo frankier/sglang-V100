@@ -1,0 +1,111 @@
+{
+  "job": 3038851,
+  "host": "dgx1-02",
+  "server": {
+    "status": "ready",
+    "tp_size": 8,
+    "dtype": "float16",
+    "kv_cache_dtype": "auto",
+    "context_length": 262144,
+    "max_total_num_tokens": 554560,
+    "max_req_input_len": 262138,
+    "max_running_requests": 8,
+    "speculative_algorithm": "EAGLE",
+    "speculative_num_steps": 3,
+    "speculative_num_draft_tokens": 4
+  },
+  "resolved_kv_dtype": "float16",
+  "basic_answers": [
+    "4",
+    "4",
+    "4",
+    "4"
+  ],
+  "throughput": [
+    {
+      "clients": 1,
+      "completion_tokens": 256,
+      "seconds": 3.3154724310152233,
+      "aggregate_tokens_per_second": 77.2137320778779
+    },
+    {
+      "clients": 4,
+      "completion_tokens": 1024,
+      "seconds": 4.98125218693167,
+      "aggregate_tokens_per_second": 205.57080058834748
+    }
+  ],
+  "capacity": {
+    "clients": 2,
+    "seconds": 141.04783249809407,
+    "input": "262016 repetitions of token 42 or 43; distinct prefixes",
+    "metadata": [
+      {
+        "id": "2a7c39f54e2d42cabad9d92c5af50e8e",
+        "finish_reason": {
+          "type": "length",
+          "length": 64
+        },
+        "prompt_tokens": 262016,
+        "weight_version": "default",
+        "num_retractions": 0,
+        "reasoning_tokens": 0,
+        "completion_tokens": 64,
+        "cached_tokens": 0,
+        "cached_tokens_details": null,
+        "dp_rank": null,
+        "e2e_latency": 139.55505021498539,
+        "spec_accept_rate": 0.52,
+        "spec_accept_length": 2.56,
+        "spec_num_correct_drafts": 39,
+        "spec_num_proposed_drafts": 75,
+        "spec_verify_ct": 25,
+        "spec_accepted_drafts": 39,
+        "spec_proposed_drafts": 75,
+        "spec_correct_drafts_histogram": [
+          12,
+          0,
+          0,
+          13
+        ],
+        "spec_accept_histogram": [
+          12,
+          0,
+          0,
+          13
+        ],
+        "response_sent_to_client_ts": 1794397217.5284235
+      },
+      {
+        "id": "f7842eff4ab648fca4233c64a92905df",
+        "finish_reason": {
+          "type": "length",
+          "length": 64
+        },
+        "prompt_tokens": 262016,
+        "weight_version": "default",
+        "num_retractions": 0,
+        "reasoning_tokens": 0,
+        "completion_tokens": 64,
+        "cached_tokens": 0,
+        "cached_tokens_details": null,
+        "dp_rank": null,
+        "e2e_latency": 140.96336056408472,
+        "spec_accept_rate": 0.0,
+        "spec_accept_length": 1.0158730158730158,
+        "spec_num_correct_drafts": 0,
+        "spec_num_proposed_drafts": 189,
+        "spec_verify_ct": 63,
+        "spec_accepted_drafts": 0,
+        "spec_proposed_drafts": 189,
+        "spec_correct_drafts_histogram": [
+          63
+        ],
+        "spec_accept_histogram": [
+          63
+        ],
+        "response_sent_to_client_ts": 1794397218.8999448
+      }
+    ]
+  }
+}

@@ -1587,7 +1587,9 @@ class QwenSparseAttnBackend(AttentionBackend):
                 )
                 self._sm70_sparse_prefill_logged = True
             output = sm70_cuda_qsa_prefill(
-                q.contiguous(),
+                # The native kernel processes six independent query heads per
+                # KV head. TP8 has three: zero queries fill the unused lanes.
+                F.pad(q, (0, 0, 0, 3)) if q.shape[1] == 3 else q.contiguous(),
                 k_buffer,
                 v_buffer,
                 self.req_to_token_pool.req_to_token,
@@ -1596,7 +1598,7 @@ class QwenSparseAttnBackend(AttentionBackend):
                 forward_batch.seq_lens,
                 layer.scaling,
             )
-            return self._pad_extend_output(output, num_output_rows)
+            return self._pad_extend_output(output[:, : q.shape[1]], num_output_rows)
         req_to_token = self.req_to_token_pool.req_to_token
         req_indices = forward_batch.req_pool_indices.tolist()
         k_parts = [
@@ -1685,7 +1687,8 @@ class QwenSparseAttnBackend(AttentionBackend):
             and q.dtype == torch.float16
             and q.ndim == 3
             and q.shape[0] > 0
-            and q.shape[1:] == (6, 256)
+            and q.shape[1] in (3, 6)
+            and q.shape[2] == 256
             and topk_indices.ndim == 2
             and topk_indices.shape[0] == q.shape[0]
             and topk_indices.shape[1] > 0
@@ -1702,7 +1705,7 @@ class QwenSparseAttnBackend(AttentionBackend):
     def _pad_extend_output(output: torch.Tensor, num_rows: int) -> torch.Tensor:
         output = output.reshape(output.shape[0], -1)
         if output.shape[0] == num_rows:
-            return output
+            return output.contiguous()
         if output.shape[0] > num_rows:
             raise ValueError(
                 "QSA attention output rows exceed padded query rows: "
@@ -1898,7 +1901,7 @@ class QwenSparseAttnBackend(AttentionBackend):
                 )
                 self._sm70_sparse_decode_logged = True
             output = sm70_cuda_qsa_decode(
-                q,
+                F.pad(q, (0, 0, 0, 3)) if q.shape[1] == 3 else q,
                 k_buffer,
                 v_buffer,
                 self.req_to_token_pool.req_to_token,
@@ -1907,7 +1910,7 @@ class QwenSparseAttnBackend(AttentionBackend):
                 metadata.sequence_lengths,
                 layer.scaling,
             )
-            return output.reshape(q.shape[0], -1)
+            return output[:, : q.shape[1]].reshape(q.shape[0], -1).contiguous()
         trtllm_decode = _resolve_trtllm_sparse_decode()
         if trtllm_decode is not None:
             return self._forward_trtllm_sparse(
@@ -2000,7 +2003,7 @@ class QwenSparseAttnBackend(AttentionBackend):
         metadata,
         topk_indices,
     ) -> bool:
-        """Exact direct-cache QSA decode/verify specialization for Qwen3.8 TP4."""
+        """Direct-cache QSA decode/verify for Qwen3.8 TP4 and TP8."""
         forward_mode = forward_batch.forward_mode
         return (
             (
@@ -2011,7 +2014,8 @@ class QwenSparseAttnBackend(AttentionBackend):
             and torch.cuda.get_device_capability(q.device) == (7, 0)
             and q.dtype == torch.float16
             and q.ndim == 3
-            and q.shape[1:] == (6, 256)
+            and q.shape[1] in (3, 6)
+            and q.shape[2] == 256
             and q.shape[0] == metadata.sequence_lengths.numel()
             and topk_indices.ndim == 2
             and topk_indices.shape[0] == q.shape[0]
