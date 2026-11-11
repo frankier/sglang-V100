@@ -36,6 +36,6 @@ hostname
 nvidia-smi
 sha256sum "$HOME/llmturso-work/sifs/sglang-v100.sif" > sif.sha256
 apptainer exec --nv --cleanenv "$HOME/llmturso-work/sifs/sglang-v100.sif" /opt/venv/bin/python -u compare_original.py
-apptainer exec --nv --cleanenv "$HOME/llmturso-work/sifs/sglang-v100.sif" /opt/venv/bin/python -m pytest -q test/registered/unit/layers/moe/test_sm70_nvfp4_moe_decode.py
+apptainer exec --nv --cleanenv "$HOME/llmturso-work/sifs/sglang-v100.sif" /opt/venv/bin/python -m pytest -q test/manual/kernels/moe/test_sm70_nvfp4_moe_decode.py
 apptainer exec --nv --cleanenv "$HOME/llmturso-work/sifs/sglang-v100.sif" /opt/venv/bin/python -u test/manual/kernels/moe/benchmark_sm70_nvfp4_decode.py
 python3 serve.py
