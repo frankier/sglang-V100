@@ -1,4 +1,5 @@
 import concurrent.futures
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -41,9 +42,30 @@ for mode in ("baseline", "specialized"):
         subprocess.run(test_command, env=process_env, check=True)
     process_env["APPTAINER_BIND"] = os.environ["APPTAINER_BIND"]
     if mode == "baseline":
-        process_env["APPTAINER_BIND"] += (
-            f",{Path.cwd()}/image-marlin.py:/opt/sglang/python/sglang/srt/layers/moe/moe_runner/marlin.py:ro"
+        process_env["APPTAINER_BIND"] = process_env["APPTAINER_BIND"].replace(
+            f"{Path.cwd()}/python/sglang/srt/layers/moe/moe_runner/marlin.py:",
+            f"{Path.cwd()}/image-marlin.py:",
         )
+    verify = command[: command.index("/opt/venv/bin/python")] + [
+        "/opt/venv/bin/python",
+        "-c",
+        "import hashlib; from pathlib import Path; p=Path('/opt/sglang/python/sglang/srt/layers/moe/moe_runner/marlin.py'); print(hashlib.sha256(p.read_bytes()).hexdigest())",
+    ]
+    bound_hash = (
+        subprocess.check_output(verify, env=process_env, text=True)
+        .strip()
+        .splitlines()[-1]
+    )
+    expected = (
+        Path("image-marlin.py")
+        if mode == "baseline"
+        else Path("python/sglang/srt/layers/moe/moe_runner/marlin.py")
+    )
+    assert bound_hash == hashlib.sha256(expected.read_bytes()).hexdigest(), (
+        mode,
+        bound_hash,
+    )
+    print(f"Verified {mode} runner SHA256 {bound_hash}", flush=True)
     log = open(f"{mode}-server.log", "w")
     print(
         f"Starting TP{tp} ({mode}) full checkpoint + MTP at {time.ctime()}", flush=True
