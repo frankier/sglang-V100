@@ -1,5 +1,4 @@
 {
-  "job_id": 3048522,
   "host": "dgx1-02",
   "staged_sha256": {
     "python/sglang/jit_kernel/sm70_nvfp4_moe_decode.py": "09acbe4dcdf9ddd29d845ab87d173cf2b2a359125dffe79a73a834dca03c2613",
@@ -13,5 +12,32 @@
     "image-decoder.cu": "58167218b5d9329179e94b1282ead4602976fdbeceb70f9102111d1a93930cdf",
     "image-marlin.py": "51968f0d527ddb0cdb6230e58e4dd385502f20571935ae709a45126df88fd45e"
   },
-  "sif_sha256": "71cd36adfb131766e141459828b8cdc27a72b47745557ed07cc4f9c36a8c1a31"
+  "sif_sha256": "71cd36adfb131766e141459828b8cdc27a72b47745557ed07cc4f9c36a8c1a31",
+  "numerics_job_id": 3048522,
+  "serving_job_id": 3049330,
+  "pinned_base_oci_digest": "sha256:80dccc86c3383cc81b0188e67cdd74961e9c4038a3986e1d0fd87e73733261e7",
+  "common_overlay_sha256": {
+    "python/sglang/srt/layers/quantization/marlin_utils.py": "f0d7feefbd193f79d0f0986d28544d866c1dd20b74b1a42d8965a51f32299d24",
+    "python/sglang/srt/layers/quantization/modelopt_quant.py": "40d8203c912ec266e2d2969d27afd05bbbca7a74991574261b4476af8e413be4",
+    "image-qsa-tp.py": "b228ac78ba1fbc63a9516adeb85bcb17b4b3cc80beef5bae7971a732a931b171"
+  },
+  "model": {
+    "repository": "RadixArk/Qwen3.8-Flash-Next-NVFP4",
+    "revision": "7b719225242aacd3dbd3f9407468c2ee9a9d2594"
+  },
+  "verified_runner_sha256": {
+    "baseline": "51968f0d527ddb0cdb6230e58e4dd385502f20571935ae709a45126df88fd45e",
+    "specialized": "8957ffe2f58057db6a5a1f315c68690e547559532d5e9231d76e093ff66b99cf"
+  },
+  "sif_sha256_after": "51f748d70aa352d18ec3dab5a8ec1b79b80c9067ee11b631458d6e8e34b8db0b",
+  "serving_job_result": {
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:13:24"
+  },
+  "numerics_job_result": {
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:28:31"
+  }
 }

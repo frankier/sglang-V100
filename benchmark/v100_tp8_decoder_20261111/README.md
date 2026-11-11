@@ -7,7 +7,7 @@ Marlin-packed weights directly; no additional serving-time repacking is needed.
 The gate/up projection retains 40 splits. The down projection uses three splits
 instead of five, preserving 32-element FP16 partials and FP32 final reductions.
 
-TP8 dispatch accepts 1–32 FP16 rows, including MTP draft/verification batches,
+TP8 dispatch accepts 1–32 FP16 token rows, including MTP draft/verification batches,
 with 512 experts and top-k 10. Larger batches and unsupported configurations
 retain generic Marlin. The source checkout's TP4 dispatch remains limited to
 four rows. The published-image integration preserves v5.1's existing optional
@@ -69,3 +69,58 @@ Slurm job `3048522`, `dgx1-02`, V100-SXM2 32 GB, CUDA 12.8, Torch 2.9.1:
 These are isolated MoE layer timings, excluding attention, routing, TP
 collectives, and request scheduling. They do not imply the same end-to-end
 speedup. Full results: [kernel-benchmark.json](kernel-benchmark.json).
+
+## Full-model serving results
+
+A/B run in Slurm job `3049330` on the same eight-GPU DGX-1 allocation,
+completed in 13m24s with exit code 0. Both
+variants use the same checkpoint (`RadixArk/Qwen3.8-Flash-Next-NVFP4`, revision
+`7b719225242aacd3dbd3f9407468c2ee9a9d2594`), runtime, quantization/QSA overlays,
+FP16 KV, MTP-3/4, eight request slots, and a 554560-token KV pool. The baseline
+binds the image's original TP4-only runner; the specialized variant binds the
+patched runner. Before each server starts, the harness checks the SHA256 of
+the runner file **inside the container** against the expected source, avoiding
+ambiguous duplicate bind destinations. Both use the same new extension's
+unchanged routing kernels.
+
+| TP8 configuration | 1 client, output tok/s | 4 clients, aggregate output tok/s |
+| --- | ---: | ---: |
+| Generic Marlin | 77.1 | 201.5 |
+| Specialized MoE decoder | 86.1 | 243.3 |
+| Improvement | 11.7% | 20.7% |
+
+Each request generates 256 tokens, with greedy decoding, thinking disabled,
+and EOS ignored. The prompt asks how a computer executes a Python program.
+One cohort per concurrency is measured after four basic warmup requests;
+rates include prefill and HTTP overhead. These are workload-specific samples,
+not a concurrency sweep or a statistical confidence interval. Raw responses
+and timings are retained in [baseline-throughput.json](baseline-throughput.json)
+and [specialized-throughput.json](specialized-throughput.json).
+
+The specialized server also:
+
+- Returned exactly `4` to each of four concurrent basic arithmetic requests.
+- Completed two distinct 262016-input-token requests submitted together, each
+  producing 64 output tokens, with zero cached input tokens and zero retractions.
+  Both completed in 143.5 seconds wall time. These repeated-token inputs probe
+  pool capacity and completion, not quality or simultaneous GPU batching.
+
+Evidence: [numerical and kernel output](numerics.log.gz),
+[serving harness output](serving.log.gz), [launch plan](launch-plan.json),
+[tested source hashes](sources.json), [baseline server log](baseline-server.log.gz),
+[specialized server log](specialized-server.log.gz),
+[basic responses](specialized-responses.json),
+[long-context results](specialized-capacity.json), and
+[server configuration/state](specialized-server-info.json).
+SIGTERM/SIGQUIT messages at the log tails come from controlled harness cleanup.
+
+Validation used read-only source binds into the derived v5.1 SIF identified in
+[sif.sha256](sif.sha256); the shared SIF was not modified. The image patch was
+checked against the captured original files and reproduces the tested Python
+sources. The Docker layer was not built or published.
+
+The TP8 kernel improves both tested serving workloads. Replica data parallelism
+remains a separate throughput/memory tradeoff: this run does not measure two
+routed TP4 replicas. The [earlier report](../v100_tp4_tp8_20261111/README.md)
+records TP4's single-server baseline; its TP8 recommendation predates this
+specialization. TP8 retains one larger shared KV pool.
