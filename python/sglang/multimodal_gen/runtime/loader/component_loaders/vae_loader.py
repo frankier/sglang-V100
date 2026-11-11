@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from safetensors import safe_open
 from safetensors.torch import load_file as safetensors_load_file
+
 from sglang.multimodal_gen.configs.models import ModelConfig
 from sglang.multimodal_gen.runtime.loader.component_loaders.component_loader import (
     ComponentLoader,
@@ -160,9 +161,9 @@ class VAELoader(ComponentLoader):
         """Load the VAE based on the model path, and inference args."""
         config = get_diffusers_component_config(component_path=component_model_path)
         class_name = config.pop("_class_name", None)
-        assert class_name is not None, (
-            "Model config does not contain a _class_name attribute. Only diffusers format is supported."
-        )
+        assert (
+            class_name is not None
+        ), "Model config does not contain a _class_name attribute. Only diffusers format is supported."
 
         server_args.model_paths[component_name] = component_model_path
 
@@ -231,9 +232,9 @@ class VAELoader(ComponentLoader):
             vae_precision=vae_precision,
         )
 
-        assert len(safetensors_list) >= 1, (
-            f"Found no safetensors files in {component_model_path}"
-        )
+        assert (
+            len(safetensors_list) >= 1
+        ), f"Found no safetensors files in {component_model_path}"
         strict_load = native_only
         if strict_load:
             # H3's video VAE alone is ~9.7 GiB. Every TP worker owns a VAE,

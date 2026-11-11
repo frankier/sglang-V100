@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import torch
+
 from sglang.srt.layers.attention.qsa.kernel import (
     average_pool_qsa_keys,
     expand_qsa_block_indices,

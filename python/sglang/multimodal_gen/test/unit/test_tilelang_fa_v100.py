@@ -6,6 +6,7 @@ from itertools import pairwise
 
 import pytest
 import torch
+
 from sglang.multimodal_gen.configs.models.dits.minimax_h3 import (
     MiniMaxH3DiTArchConfig,
 )

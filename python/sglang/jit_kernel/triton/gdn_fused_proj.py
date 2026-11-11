@@ -144,6 +144,7 @@ def fused_qkvzba_split_reshape_cat(
     )
     return mixed_qkv, z, b, a
 
+
 # =============================================================================
 # Fused kernel — reads CONTIGUOUS input format
 # Used by Qwen3.5 whose checkpoint stores in_proj_qkv and in_proj_z separately.
@@ -235,10 +236,7 @@ def fused_qkvzba_split_reshape_cat_contiguous_kernel(
         + offs_v
     )
     blk_z_st_ptr = (
-        z
-        + i_bs * NUM_HEADS_V * HEAD_V
-        + i_qk * V_PER_GROUP * HEAD_V
-        + offs_v
+        z + i_bs * NUM_HEADS_V * HEAD_V + i_qk * V_PER_GROUP * HEAD_V + offs_v
     )
 
     tl.store(blk_q_st_ptr, tl.load(blk_q_ptr))

@@ -44,9 +44,7 @@ _SM70_MARLIN_MOE_ENV_NAMES = (
     "SM70_MARLIN_MOE_SPLIT_K",
     "SM70_MARLIN_MOE_METADATA_CACHE",
 )
-_sm70_marlin_user_tuning = any(
-    os.getenv(name) for name in _SM70_MARLIN_MOE_ENV_NAMES
-)
+_sm70_marlin_user_tuning = any(os.getenv(name) for name in _SM70_MARLIN_MOE_ENV_NAMES)
 _sm70_qwen38_tuning_stage = None
 
 
@@ -148,13 +146,17 @@ def _load_marlin_v100_op():
     # 1. installed next to sglang's jit_kernel package (setup_v100_marlin.sh)
     candidates += sorted(glob.glob(os.path.join(here, "_sm70_marlin_v100_moe*.so")))
     # 2. dev build in a ~/marlin_v100 checkout
-    candidates += sorted(glob.glob(os.path.join(home, "marlin_v100", "vllm", "_moe_C*.so")))
+    candidates += sorted(
+        glob.glob(os.path.join(home, "marlin_v100", "vllm", "_moe_C*.so"))
+    )
 
     for path in candidates:
         try:
             torch.ops.load_library(path)
         except Exception as e:  # noqa: BLE001
-            logger.warning("SM70 (V100): failed to load marlin_v100 .so at %s: %s", path, e)
+            logger.warning(
+                "SM70 (V100): failed to load marlin_v100 .so at %s: %s", path, e
+            )
             continue
         op = getattr(torch.ops._moe_C, "moe_wna16_marlin_gemm", None)
         if op is not None:

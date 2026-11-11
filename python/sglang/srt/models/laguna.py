@@ -33,12 +33,12 @@ from sglang.srt.layers.dp_attention import (
     get_attention_tp_size,
     is_dp_attention_enabled,
 )
-from sglang.srt.layers.layernorm import RMSNorm
 from sglang.srt.layers.laguna_rmsnorm import (
     laguna_rmsnorm_sm70,
     laguna_scale_output_sm70,
     laguna_silu_and_mul_sm70,
 )
+from sglang.srt.layers.layernorm import RMSNorm
 from sglang.srt.layers.linear import (
     ColumnParallelLinear,
     MergedColumnParallelLinear,
@@ -287,9 +287,7 @@ class LagunaMoE(nn.Module):
         )
         self.wide_output_scale = get_laguna_wide_output_scale()
         if self.wide_output_scale != 1.0:
-            self.experts.moe_runner_config.wide_output_scale = (
-                self.wide_output_scale
-            )
+            self.experts.moe_runner_config.wide_output_scale = self.wide_output_scale
             self.experts.moe_runner_config.gate_up_input_scale = (
                 get_laguna_gate_up_input_scale()
             )

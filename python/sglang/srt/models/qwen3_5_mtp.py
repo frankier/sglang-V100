@@ -90,9 +90,7 @@ class Qwen3_5ForCausalLMMTP(nn.Module):
         # exclusion here before the expert parameters are allocated. The
         # factory Qwen3.5-122B-A10B GPTQ-Int4 checkpoint stores its MTP module
         # as unquantized weights.
-        if quant_config and _is_mtp_dynamically_unquantized(
-            quant_config, mtp_prefix
-        ):
+        if quant_config and _is_mtp_dynamically_unquantized(quant_config, mtp_prefix):
             quant_config = None
 
         self.config = config

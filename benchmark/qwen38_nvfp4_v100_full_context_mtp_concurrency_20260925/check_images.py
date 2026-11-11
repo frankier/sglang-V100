@@ -25,20 +25,29 @@ def make_image(color: str, number: int) -> dict:
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG", quality=90)
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-    return {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + encoded}}
+    return {
+        "type": "image_url",
+        "image_url": {"url": "data:image/jpeg;base64," + encoded},
+    }
 
 
 def sample_gpu(stop: threading.Event, samples: list) -> None:
     while not stop.is_set():
         result = subprocess.run(
-            ["nvidia-smi", "--query-gpu=index,memory.used,memory.free", "--format=csv,noheader,nounits"],
+            [
+                "nvidia-smi",
+                "--query-gpu=index,memory.used,memory.free",
+                "--format=csv,noheader,nounits",
+            ],
             capture_output=True,
             text=True,
             check=True,
         )
         samples.append(
-            [dict(zip(("gpu", "used_mib", "free_mib"), map(int, line.split(","))))
-             for line in result.stdout.splitlines()]
+            [
+                dict(zip(("gpu", "used_mib", "free_mib"), map(int, line.split(","))))
+                for line in result.stdout.splitlines()
+            ]
         )
         stop.wait(0.5)
 
@@ -61,11 +70,13 @@ def main() -> None:
     def run(index: int) -> dict:
         color = colors[index % len(colors)]
         items = [make_image(color, i + 1) for i in range(args.images)]
-        items.append({
-            "type": "text",
-            "text": ("Background notes for the agent. " * args.filler_repeats)
-            + "What color is the large central rectangle in each image? Reply with just the color name.",
-        })
+        items.append(
+            {
+                "type": "text",
+                "text": ("Background notes for the agent. " * args.filler_repeats)
+                + "What color is the large central rectangle in each image? Reply with just the color name.",
+            }
+        )
         payload = {
             "model": "qwen",
             "messages": [{"role": "user", "content": items}],
@@ -78,20 +89,33 @@ def main() -> None:
             response = requests.post(
                 args.base_url + "/v1/chat/completions", json=payload, timeout=900
             )
-            row = {"request": index, "status": response.status_code,
-                   "elapsed_s": round(time.monotonic() - start, 2)}
+            row = {
+                "request": index,
+                "status": response.status_code,
+                "elapsed_s": round(time.monotonic() - start, 2),
+            }
             if response.ok:
                 body = response.json()
                 answer = body["choices"][0]["message"]["content"] or ""
-                row.update(answer=answer, expected_color=color, usage=body["usage"],
-                           finish_reason=body["choices"][0]["finish_reason"])
-                row["passed"] = color in answer.lower() and body["usage"]["completion_tokens"] > 0
+                row.update(
+                    answer=answer,
+                    expected_color=color,
+                    usage=body["usage"],
+                    finish_reason=body["choices"][0]["finish_reason"],
+                )
+                row["passed"] = (
+                    color in answer.lower() and body["usage"]["completion_tokens"] > 0
+                )
             else:
                 row.update(passed=False, error=response.text[:500])
             return row
         except Exception as exc:
-            return {"request": index, "passed": False, "error": repr(exc),
-                    "elapsed_s": round(time.monotonic() - start, 2)}
+            return {
+                "request": index,
+                "passed": False,
+                "error": repr(exc),
+                "elapsed_s": round(time.monotonic() - start, 2),
+            }
 
     sampler.start()
     start = time.monotonic()
@@ -104,13 +128,22 @@ def main() -> None:
     peak = []
     for gpu in range(4):
         record = [sample[gpu] for sample in samples]
-        peak.append({"gpu": gpu, "peak_used_mib": max(s["used_mib"] for s in record),
-                     "minimum_free_mib": min(s["free_mib"] for s in record)})
-    summary = {"requests": args.requests, "images_per_request": args.images,
-               "filler_repeats": args.filler_repeats,
-               "elapsed_s": round(time.monotonic() - start, 2),
-               "peak_gpu_memory": peak, "results": rows,
-               "passed": all(row["passed"] for row in rows)}
+        peak.append(
+            {
+                "gpu": gpu,
+                "peak_used_mib": max(s["used_mib"] for s in record),
+                "minimum_free_mib": min(s["free_mib"] for s in record),
+            }
+        )
+    summary = {
+        "requests": args.requests,
+        "images_per_request": args.images,
+        "filler_repeats": args.filler_repeats,
+        "elapsed_s": round(time.monotonic() - start, 2),
+        "peak_gpu_memory": peak,
+        "results": rows,
+        "passed": all(row["passed"] for row in rows),
+    }
     with open(args.output, "w") as handle:
         json.dump(summary, handle, indent=2)
         handle.write("\n")

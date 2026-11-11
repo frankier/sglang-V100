@@ -3,6 +3,7 @@
 from unittest import mock
 
 import torch
+
 from sglang.multimodal_gen.runtime.models.encoders import minimax_h3_qwen3vl
 from sglang.multimodal_gen.runtime.models.encoders.minimax_h3_qwen3vl import (
     MiniMaxH3Qwen3VLEncoder,

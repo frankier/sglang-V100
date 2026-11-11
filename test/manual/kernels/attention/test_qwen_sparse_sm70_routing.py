@@ -97,9 +97,7 @@ def test_sm70_qsa_dense_prefill_uses_packaged_kernel_per_sequence(monkeypatch):
     k = torch.zeros((5, 1, 256), dtype=torch.float16)
     v = torch.zeros_like(k)
 
-    output = QwenSparseAttnBackend._forward_sm70_dense_prefill(
-        q, k, v, [2, 3], 0.0625
-    )
+    output = QwenSparseAttnBackend._forward_sm70_dense_prefill(q, k, v, [2, 3], 0.0625)
 
     assert calls == [(2, 2, 2, 0), (3, 3, 3, 0)]
     torch.testing.assert_close(output[:2], torch.ones_like(output[:2]))
@@ -112,9 +110,7 @@ def test_sm70_qsa_dense_prefill_rejects_mismatched_packing():
     v = torch.zeros_like(k)
 
     with pytest.raises(ValueError, match="packed rows"):
-        QwenSparseAttnBackend._forward_sm70_dense_prefill(
-            q, k, v, [2, 2], 0.0625
-        )
+        QwenSparseAttnBackend._forward_sm70_dense_prefill(q, k, v, [2, 2], 0.0625)
 
 
 @pytest.mark.parametrize(

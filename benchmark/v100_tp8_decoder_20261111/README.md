@@ -30,7 +30,7 @@ No new environment flag is needed to enable TP8 specialization.
 On a V100 in the serving environment:
 
 ```bash
-python -m pytest -q test/registered/unit/layers/moe/test_sm70_nvfp4_moe_decode.py
+python -m pytest -q test/manual/kernels/moe/test_sm70_nvfp4_moe_decode.py
 python test/manual/kernels/moe/benchmark_sm70_nvfp4_decode.py
 ```
 

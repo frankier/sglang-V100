@@ -2,11 +2,11 @@ import concurrent.futures
 import hashlib
 import json
 import os
-from pathlib import Path
 import signal
 import subprocess
 import time
 import urllib.request
+from pathlib import Path
 
 
 def request(path, data=None):

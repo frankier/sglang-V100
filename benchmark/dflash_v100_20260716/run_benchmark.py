@@ -25,7 +25,6 @@ import aiohttp
 
 from sglang.srt.utils.hf_transformers.tokenizer import get_tokenizer
 
-
 DEFAULT_LENGTHS = list(range(1_000, 25_001, 2_000))
 DEFAULT_CONCURRENCY = [1, 2, 4]
 SOURCE_SUFFIXES = {
@@ -305,9 +304,7 @@ async def process_streaming_request(
     output_audit = audit_output(tokenizer, final_text, completion_tokens)
     finish_reason = meta.get("finish_reason")
     finish_type = (
-        finish_reason.get("type")
-        if isinstance(finish_reason, dict)
-        else finish_reason
+        finish_reason.get("type") if isinstance(finish_reason, dict) else finish_reason
     )
     success = (
         status == 200
@@ -402,8 +399,7 @@ def aggregate_trial(requests: list[dict[str, Any]]) -> dict[str, Any]:
             item["client_ttft_s"] for item in requests
         )
         * 1000,
-        "max_client_ttft_ms": max(item["client_ttft_s"] for item in requests)
-        * 1000,
+        "max_client_ttft_ms": max(item["client_ttft_s"] for item in requests) * 1000,
         "effective_input_tps": total_input / (last_first - batch_start),
         "median_request_decode_tps": statistics.median(request_decode_tps),
         "median_server_decode_tps": (
@@ -508,9 +504,7 @@ def write_summary(rows: list[dict[str, Any]], output_dir: Path) -> None:
     if summary:
         with (output_dir / "summary.csv").open("w", newline="") as file:
             fieldnames = sorted({key for row in summary for key in row})
-            writer = csv.DictWriter(
-                file, fieldnames=fieldnames, lineterminator="\n"
-            )
+            writer = csv.DictWriter(file, fieldnames=fieldnames, lineterminator="\n")
             writer.writeheader()
             writer.writerows(summary)
 
@@ -551,9 +545,7 @@ async def main_async(args) -> None:
             not in replace_keys
         ]
         completed.difference_update(replace_keys)
-        raw_path.write_text(
-            "".join(json.dumps(row) + "\n" for row in rows)
-        )
+        raw_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
 
     timeout = aiohttp.ClientTimeout(total=args.timeout)
     async with aiohttp.ClientSession(
@@ -602,12 +594,8 @@ async def main_async(args) -> None:
                                 "repeat": repeat,
                                 "prompt_len": prompt_len,
                                 "concurrency": concurrency,
-                                "ttft_ms": round(
-                                    aggregate["median_client_ttft_ms"], 1
-                                ),
-                                "input_tps": round(
-                                    aggregate["effective_input_tps"], 1
-                                ),
+                                "ttft_ms": round(aggregate["median_client_ttft_ms"], 1),
+                                "input_tps": round(aggregate["effective_input_tps"], 1),
                                 "request_decode_tps": round(
                                     aggregate["median_request_decode_tps"], 1
                                 ),

@@ -10,6 +10,8 @@ import torch
 import torch.nn.functional as F
 import triton
 import triton.language as tl
+from torch import nn
+
 from sglang.srt.configs.qwen4_exp import Qwen4ExpConfig, Qwen4ExpTextConfig
 from sglang.srt.distributed import get_tp_group, tensor_model_parallel_all_reduce
 from sglang.srt.distributed.device_communicators.pynccl_allocator import (
@@ -60,7 +62,6 @@ from sglang.srt.models.qwen3_5 import (
 )
 from sglang.srt.models.qwen3_vl import Qwen3VLForConditionalGeneration
 from sglang.srt.utils import logger
-from torch import nn
 
 # Decode/verify-sized batches only: at prefill sizes both chains are compute
 # bound and serializing them on one stream is faster than contending.
@@ -2126,9 +2127,9 @@ class Qwen4ExpForConditionalGeneration(Qwen3VLForConditionalGeneration):
                     if name.endswith(ignore_suffixes) and name not in params_dict:
                         continue
                     if name.endswith("_scale") and name not in params_dict:
-                        assert abs(loaded_weight.item() - 1.0) < 1e-6, (
-                            f"Expected 1.0, got {loaded_weight.item()} in skipped {name}"
-                        )
+                        assert (
+                            abs(loaded_weight.item() - 1.0) < 1e-6
+                        ), f"Expected 1.0, got {loaded_weight.item()} in skipped {name}"
                         continue
                     if name in params_dict:
                         param = params_dict[name]

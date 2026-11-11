@@ -204,8 +204,8 @@ On an idle V100, the targeted checks can be reproduced with:
 ```bash
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=python FLASHINFER_DISABLE_VERSION_CHECK=1 \
   python -m pytest -q \
-  test/registered/unit/layers/moe/test_sm70_nvfp4_moe_decode.py \
-  test/registered/unit/layers/attention/test_qwen_sparse_sm70_routing.py \
+  test/manual/kernels/moe/test_sm70_nvfp4_moe_decode.py \
+  test/manual/kernels/attention/test_qwen_sparse_sm70_routing.py \
   test/manual/layers/test_sm70_hc_mix.py \
   test/manual/layers/test_sm70_dense_gemv.py \
   test/manual/layers/test_sm70_qwen_fusions.py \

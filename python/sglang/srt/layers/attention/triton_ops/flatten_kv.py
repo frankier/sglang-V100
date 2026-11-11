@@ -13,7 +13,6 @@ For production fused performance, this can be replaced by a Triton/CUDA kernel.
 """
 
 import torch
-import torch.nn.functional as F
 
 
 def flatten_kv(
@@ -49,7 +48,7 @@ def flatten_kv(
         Returns None tuple when:
         - No prefix tokens exist (all new)
         - No sequences to flatten
-        """
+    """
     num_seqs = len(seq_lens)
     if num_seqs <= 0:
         return None, None, None, None
@@ -65,12 +64,10 @@ def flatten_kv(
 
     # Allocate contiguous output buffer
     flat_k = torch.zeros(
-        total_tokens, num_heads, head_dim,
-        dtype=k_paged.dtype, device=device
+        total_tokens, num_heads, head_dim, dtype=k_paged.dtype, device=device
     )
     flat_v = torch.zeros(
-        total_tokens, num_heads, head_dim,
-        dtype=k_paged.dtype, device=device
+        total_tokens, num_heads, head_dim, dtype=k_paged.dtype, device=device
     )
 
     # Compute cu_seqlens for ragged wrapper
@@ -99,7 +96,11 @@ def flatten_kv(
             new_start = 0
             for s in range(seq_idx):
                 new_start += int(seq_lens[s].item()) - int(extend_prefix_lens[s].item())
-            flat_k[flat_start + prefix_len : flat_end] = k_new[new_start : new_start + n_new]
-            flat_v[flat_start + prefix_len : flat_end] = v_new[new_start : new_start + n_new]
+            flat_k[flat_start + prefix_len : flat_end] = k_new[
+                new_start : new_start + n_new
+            ]
+            flat_v[flat_start + prefix_len : flat_end] = v_new[
+                new_start : new_start + n_new
+            ]
 
     return flat_k, flat_v, flat_cu_seqlens, seq_lens

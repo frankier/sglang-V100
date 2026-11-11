@@ -28,7 +28,6 @@ def decide_needs_cpu_seq_lens(
     """
     # Local import: keep overlap_utils' module-level deps leaf-only so it stays
     # importable everywhere; spec_info pulls in the spec/schedule_batch graph.
-    from sglang.srt.speculative.spec_info import SpeculativeAlgorithm
 
     if server_args.enable_two_batch_overlap:
         # FIXME: support TBO without seq lens cpu value

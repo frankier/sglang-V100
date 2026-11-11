@@ -6,6 +6,21 @@ from typing import Iterable, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from transformers import Cache, DynamicCache
+from transformers.activations import ACT2FN
+from transformers.modeling_flash_attention_utils import FlashAttentionKwargs
+from transformers.modeling_outputs import BaseModelOutputWithPast
+from transformers.models.qwen3_vl.configuration_qwen3_vl import Qwen3VLTextConfig
+from transformers.models.qwen3_vl.modeling_qwen3_vl import (
+    Qwen3VLCausalLMOutputWithPast,
+    Qwen3VLModelOutputWithPast,
+    Qwen3VLTextRMSNorm,
+    Qwen3VLTextRotaryEmbedding,
+    Qwen3VLVisionModel,
+    apply_rotary_pos_emb,
+)
+from transformers.utils import TransformersKwargs, is_torchdynamo_compiling
+
 from sglang.multimodal_gen.configs.models.encoders.qwen3vl import Qwen3VLConfig
 from sglang.multimodal_gen.runtime.distributed import (
     get_tp_world_size,
@@ -24,20 +39,6 @@ from sglang.multimodal_gen.runtime.layers.quantization.configs.base_config impor
 from sglang.multimodal_gen.runtime.loader.weight_utils import default_weight_loader
 from sglang.multimodal_gen.runtime.models.encoders.base import TextEncoder
 from sglang.multimodal_gen.runtime.platforms import AttentionBackendEnum
-from transformers import Cache, DynamicCache
-from transformers.activations import ACT2FN
-from transformers.modeling_flash_attention_utils import FlashAttentionKwargs
-from transformers.modeling_outputs import BaseModelOutputWithPast
-from transformers.models.qwen3_vl.configuration_qwen3_vl import Qwen3VLTextConfig
-from transformers.models.qwen3_vl.modeling_qwen3_vl import (
-    Qwen3VLCausalLMOutputWithPast,
-    Qwen3VLModelOutputWithPast,
-    Qwen3VLTextRMSNorm,
-    Qwen3VLTextRotaryEmbedding,
-    Qwen3VLVisionModel,
-    apply_rotary_pos_emb,
-)
-from transformers.utils import TransformersKwargs, is_torchdynamo_compiling
 
 try:
     from typing import Unpack  # type: ignore[attr-defined]

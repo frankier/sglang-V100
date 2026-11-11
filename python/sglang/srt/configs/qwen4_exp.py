@@ -1,6 +1,7 @@
+from transformers import PretrainedConfig
+
 from sglang.srt.configs.qwen3_next import Qwen3NextConfig
 from sglang.srt.configs.qwen3_vl import Qwen3VLVisionConfig
-from transformers import PretrainedConfig
 
 
 class Qwen4ExpVisionConfig(Qwen3VLVisionConfig):

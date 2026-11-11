@@ -2,10 +2,11 @@
 
 import torch
 from safetensors.torch import save_file
+from torch.nn.utils.parametrizations import weight_norm
+
 from sglang.multimodal_gen.runtime.loader.component_loaders.vae_loader import (
     _stream_safetensors_into_module,
 )
-from torch.nn.utils.parametrizations import weight_norm
 
 
 def test_stream_safetensors_into_module(tmp_path):

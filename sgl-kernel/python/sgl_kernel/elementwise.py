@@ -19,6 +19,7 @@ def _is_sm70():
         return False
     return torch.cuda.get_device_capability()[0] == 7
 
+
 _FLASHINFER_NORM_SUPPORTED_DTYPES = {torch.float16, torch.bfloat16}
 
 

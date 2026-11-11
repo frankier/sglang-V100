@@ -10,7 +10,6 @@ import math
 from pathlib import Path
 from typing import Callable
 
-
 MODELS = [
     ("Qwen 27B FP16 + DFlash", "27b", "#2563eb"),
     ("Qwen 122B-A10B Int4 + DFlash", "122b", "#dc2626"),
@@ -91,9 +90,7 @@ def render_plot(rows_by_model: dict[str, list[dict]], concurrency: int) -> str:
 
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img">',
-        "<title>V100 context benchmark at concurrency "
-        + str(concurrency)
-        + "</title>",
+        "<title>V100 context benchmark at concurrency " + str(concurrency) + "</title>",
         "<desc>Audited V100 context-scaling results for Qwen3.6 27B FP16 with DFlash, Qwen3.5 122B-A10B GPTQ Int4 with DFlash, and Laguna S 2.1 INT4 with and without DFlash.</desc>",
         '<rect width="100%" height="100%" fill="#ffffff"/>',
         '<style>text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#111827}.title{font-size:28px;font-weight:700}.subtitle{font-size:15px;fill:#4b5563}.panel-title{font-size:18px;font-weight:650}.axis{font-size:12px;fill:#4b5563}.unit{font-size:12px;fill:#6b7280}.footer{font-size:12px;fill:#6b7280}</style>',

@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+
 from sglang.jit_kernel.all_reduce import AllReduceAlgo
 from sglang.srt.arg_groups.speculative_hook import (
     _handle_dflash,
@@ -1144,7 +1145,7 @@ def test_v100_triton_allocates_prefill_metadata_for_speculation(
 ):
     model_runner = SimpleNamespace(
         kv_cache_dtype=torch.float16,
-        spec_algorithm=SimpleNamespace(is_speculative=lambda: is_speculative)
+        spec_algorithm=SimpleNamespace(is_speculative=lambda: is_speculative),
     )
 
     assert _should_skip_triton_prefill(model_runner) is expected_skip_prefill
@@ -1394,8 +1395,18 @@ def test_v100_tilelang_uses_supported_full_attention_signature(monkeypatch):
 def test_v100_native_extend_selects_swa_page_table(monkeypatch):
     captured = {}
 
-    def fake_tilelang_paged(q, k_cache, v_cache, block_table, seq_lens,
-                            query_start_loc, prefix_kv_lens, *, out, **kwargs):
+    def fake_tilelang_paged(
+        q,
+        k_cache,
+        v_cache,
+        block_table,
+        seq_lens,
+        query_start_loc,
+        prefix_kv_lens,
+        *,
+        out,
+        **kwargs,
+    ):
         captured["block_table"] = block_table.clone()
         captured["sliding_window_size"] = kwargs["sliding_window_size"]
         out.zero_()

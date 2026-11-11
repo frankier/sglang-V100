@@ -10,7 +10,6 @@ import math
 from pathlib import Path
 from typing import Callable
 
-
 MODELS = [
     ("Qwen3.6 27B FP16 + DFlash", "27b", "#2563eb"),
     ("Qwen3.5 122B-A10B INT4 + DFlash", "122b", "#dc2626"),
@@ -107,7 +106,7 @@ def render_plot(
         ),
         '<rect width="100%" height="100%" fill="#ffffff"/>',
         (
-            '<style>text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,'
+            "<style>text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"
             'BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#111827}'
             ".title{font-size:31px;font-weight:700}.subtitle{font-size:16px;"
             "fill:#4b5563}.panel-title{font-size:19px;font-weight:650}"
@@ -271,9 +270,7 @@ def main() -> None:
         "--output",
         type=Path,
         default=(
-            Path(__file__).resolve().parent
-            / "plots"
-            / "v100_model_comparison.svg"
+            Path(__file__).resolve().parent / "plots" / "v100_model_comparison.svg"
         ),
     )
     args = parser.parse_args()

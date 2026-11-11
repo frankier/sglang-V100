@@ -124,7 +124,9 @@ def _load_architecture_specific_ops():
                 fb_pattern = str(sgl_kernel_dir / fb_subdir / "common_ops.*")
                 fb_files = _filter_compiled_extensions(glob.glob(fb_pattern))
                 if fb_files:
-                    logger.debug(f"[sgl_kernel] Trying cross-arch fallback: {fb_pattern}")
+                    logger.debug(
+                        f"[sgl_kernel] Trying cross-arch fallback: {fb_pattern}"
+                    )
                     ops_pattern = fb_pattern
                     matching_files = fb_files
                     break

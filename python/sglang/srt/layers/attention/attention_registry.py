@@ -170,9 +170,9 @@ def create_triton_backend(runner):
 @register_attention_backend("tilelang_fa_v100")
 def create_tilelang_fa_v100_backend(runner):
     """Primary name for SGLang's self-contained SM70 TileLang backend."""
-    assert not runner.model_config.is_encoder_decoder, (
-        "Cross attention is not supported in the tilelang_fa_v100 backend."
-    )
+    assert (
+        not runner.model_config.is_encoder_decoder
+    ), "Cross attention is not supported in the tilelang_fa_v100 backend."
 
     from sglang.srt.layers.attention.flash_attn_v100_backend import (
         FlashAttnV100Backend,

@@ -12,6 +12,8 @@ import tilelang
 import tilelang.language as T
 import torch
 import torch.nn.functional as F
+from tilelang.jit.adapter.base import BaseKernelAdapter as _BaseKernelAdapter
+
 from sglang.multimodal_gen.runtime.layers.attention.backends.attention_backend import (
     AttentionBackend,
     AttentionImpl,
@@ -19,7 +21,6 @@ from sglang.multimodal_gen.runtime.layers.attention.backends.attention_backend i
     AttentionMetadataBuilder,
 )
 from sglang.multimodal_gen.runtime.platforms import AttentionBackendEnum
-from tilelang.jit.adapter.base import BaseKernelAdapter as _BaseKernelAdapter
 
 tilelang.set_log_level("WARNING")
 

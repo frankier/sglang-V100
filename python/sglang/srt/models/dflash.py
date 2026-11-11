@@ -11,6 +11,8 @@ from typing import Iterable, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from sglang.srt.configs.laguna import normalize_gating
 from sglang.srt.distributed import get_tensor_model_parallel_world_size
 from sglang.srt.distributed.communication_op import tensor_model_parallel_all_gather
@@ -47,7 +49,6 @@ from sglang.srt.speculative.dflash_utils import (
 from sglang.srt.speculative.triton_ops.dflash_selector import selector_walk_triton
 from sglang.srt.utils import is_npu
 from sglang.srt.utils.common import get_compiler_backend
-from torch import nn
 
 _is_npu = is_npu()
 if _is_npu:

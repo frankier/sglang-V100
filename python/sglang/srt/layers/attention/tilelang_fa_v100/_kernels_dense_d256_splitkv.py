@@ -139,9 +139,7 @@ def _dense_prefix_d256_splitkv_partial(heads, heads_kv, splits):
                     Partial_Sum[split_id, query_start + row, q_head] = row_sum[row]
             for row, d in T.Parallel(_BLOCK_M, dim):
                 if query_start + row < nt:
-                    Partial_O[split_id, query_start + row, q_head, d] = output[
-                        row, d
-                    ]
+                    Partial_O[split_id, query_start + row, q_head, d] = output[row, d]
 
     return main
 

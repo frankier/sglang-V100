@@ -3,11 +3,11 @@ from __future__ import annotations
 import pytest
 import torch
 
-from sglang.srt.layers.quantization.awq.awq import AWQConfig
 from sglang.srt.hardware_backend.gpu.quantization.awq_kernels import (
     AWQLinearKernel,
     can_use_sm70_turbomind_awq,
 )
+from sglang.srt.layers.quantization.awq.awq import AWQConfig
 
 pytestmark = pytest.mark.skipif(
     not torch.cuda.is_available() or torch.cuda.get_device_capability() != (7, 0),
@@ -56,9 +56,7 @@ def test_compact_decode_and_bounded_exact_prefill_match_dense_weight():
     torch.manual_seed(31)
     assert can_use_sm70_turbomind_awq()
     layer = _DummyAWQLinear()
-    kernel = AWQLinearKernel(
-        AWQConfig(weight_bits=4, group_size=128, zero_point=True)
-    )
+    kernel = AWQLinearKernel(AWQConfig(weight_bits=4, group_size=128, zero_point=True))
     kernel.process_weights_after_loading(layer)
 
     assert layer._awq_sm70_prepared
@@ -75,16 +73,14 @@ def test_compact_decode_and_bounded_exact_prefill_match_dense_weight():
         128,
     )
 
-    decode_input = torch.randn(
-        1, 1536, dtype=torch.float16, device="cuda"
-    ).mul_(0.1)
+    decode_input = torch.randn(1, 1536, dtype=torch.float16, device="cuda").mul_(0.1)
     decode = kernel.apply(layer, decode_input)
     dense_decode = torch.mm(decode_input, dense)
     torch.testing.assert_close(decode, dense_decode, rtol=2e-3, atol=5e-4)
 
-    prefill_input = torch.randn(
-        4096, 1536, dtype=torch.float16, device="cuda"
-    ).mul_(0.1)
+    prefill_input = torch.randn(4096, 1536, dtype=torch.float16, device="cuda").mul_(
+        0.1
+    )
     prefill = kernel.apply(layer, prefill_input)
     dense_prefill = torch.mm(prefill_input, dense)
     torch.testing.assert_close(prefill, dense_prefill, rtol=0, atol=0)

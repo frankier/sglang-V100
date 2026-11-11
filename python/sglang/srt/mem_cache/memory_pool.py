@@ -2591,11 +2591,7 @@ def set_kv_buffer_prefix_valid_tiled(
     dst_k = tl.cast(dst_k_ptr, tl.pointer_type(tl.uint8))
     dst_v = tl.cast(dst_v_ptr, tl.pointer_type(tl.uint8))
 
-    k_val = tl.load(
-        src_k + src_row * src_k_stride_bytes + byte_off, mask=mask, other=0
-    )
-    v_val = tl.load(
-        src_v + src_row * src_v_stride_bytes + byte_off, mask=mask, other=0
-    )
+    k_val = tl.load(src_k + src_row * src_k_stride_bytes + byte_off, mask=mask, other=0)
+    v_val = tl.load(src_v + src_row * src_v_stride_bytes + byte_off, mask=mask, other=0)
     tl.store(dst_k + loc * dst_k_stride_bytes + byte_off, k_val, mask=mask)
     tl.store(dst_v + loc * dst_v_stride_bytes + byte_off, v_val, mask=mask)

@@ -9,7 +9,6 @@ import math
 import statistics
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent
 EXPECTED_CONTEXTS = list(range(1_000, 25_001, 2_000))
 EXPECTED_OUTPUT_TOKENS = 256
@@ -48,9 +47,10 @@ def audit_trial(row: dict) -> None:
     assert output_audit["reasons"] == [], prompt_len
     assert output_audit["retokenized_tokens"] == EXPECTED_OUTPUT_TOKENS, prompt_len
     assert output_audit["text"], prompt_len
-    assert hashlib.sha256(output_audit["text"].encode()).hexdigest() == output_audit[
-        "text_sha256"
-    ], prompt_len
+    assert (
+        hashlib.sha256(output_audit["text"].encode()).hexdigest()
+        == output_audit["text_sha256"]
+    ), prompt_len
 
 
 def geomean(values: list[float]) -> float:
@@ -68,8 +68,7 @@ def main() -> None:
     for tp2, tp4 in zip(trials["tp2"], trials["tp4"], strict=True):
         assert tp2["prompt_len"] == tp4["prompt_len"]
         prompt_matches += (
-            tp2["requests"][0]["prompt_sha256"]
-            == tp4["requests"][0]["prompt_sha256"]
+            tp2["requests"][0]["prompt_sha256"] == tp4["requests"][0]["prompt_sha256"]
         )
         output_matches += (
             tp2["requests"][0]["output_audit"]["text_sha256"]

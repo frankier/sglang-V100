@@ -284,9 +284,7 @@ REASONING_PARSER_RULES = (
     DetectionRule(name="glm45", value="glm45", predicate=_is_glm45),
     DetectionRule(name="mimo", value="mimo", predicate=_is_mimo),
     DetectionRule(name="minimax", value="minimax", predicate=_is_minimax),
-    DetectionRule(
-        name="poolside_v1", value="poolside_v1", predicate=_is_poolside_v1
-    ),
+    DetectionRule(name="poolside_v1", value="poolside_v1", predicate=_is_poolside_v1),
     DetectionRule(name="qwen3", value="qwen3", predicate=_is_qwen3),
     DetectionRule(name="deepseek_v3", value="deepseek-v3", predicate=_is_deepseek_v3),
     DetectionRule(
@@ -312,9 +310,7 @@ TOOL_CALL_PARSER_RULES = (
     DetectionRule(name="mistral", value="mistral", predicate=_is_mistral),
     DetectionRule(name="glm45", value="glm45", predicate=_is_glm45),
     DetectionRule(name="minicpm5", value="minicpm5", predicate=_is_minicpm5),
-    DetectionRule(
-        name="poolside_v1", value="poolside_v1", predicate=_is_poolside_v1
-    ),
+    DetectionRule(name="poolside_v1", value="poolside_v1", predicate=_is_poolside_v1),
     DetectionRule(
         name="xml_kv_tool_call", value="glm45", predicate=_is_xml_kv_tool_call
     ),

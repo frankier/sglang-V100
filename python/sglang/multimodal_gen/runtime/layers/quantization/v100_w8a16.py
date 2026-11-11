@@ -11,6 +11,8 @@ from typing import Any
 
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from sglang.multimodal_gen.runtime.layers.linear import (
     LinearBase,
     LinearMethodBase,
@@ -21,7 +23,6 @@ from sglang.multimodal_gen.runtime.layers.quantization.configs.base_config impor
     QuantizeMethodBase,
 )
 from sglang.multimodal_gen.runtime.models.parameter import ModelWeightParameter
-from torch import nn
 
 
 class V100W8A16Config(QuantizationConfig):
