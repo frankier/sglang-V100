@@ -196,9 +196,7 @@ class FlashAttnV100Backend(AttentionBackend):
         self.req_to_token = model_runner.req_to_token_pool.req_to_token
         self.token_to_kv_pool = model_runner.token_to_kv_pool
         self.skip_prefill = skip_prefill
-        self._uses_sm70_e4m3_kv = (
-            model_runner.kv_cache_dtype == torch.float8_e4m3fn
-        )
+        self._uses_sm70_e4m3_kv = model_runner.kv_cache_dtype == torch.float8_e4m3fn
         self._uses_sm70_e5m2_kv = model_runner.kv_cache_dtype == torch.float8_e5m2
         self._uses_sm70_fp8_kv = self._uses_sm70_e4m3_kv or self._uses_sm70_e5m2_kv
         fp8_prefill_scratch = (
@@ -900,8 +898,7 @@ class FlashAttnV100Backend(AttentionBackend):
             or sinks is not None
             or layer.xai_temperature_len > 0
             or (
-                layer.sliding_window_size is not None
-                and layer.sliding_window_size >= 0
+                layer.sliding_window_size is not None and layer.sliding_window_size >= 0
             )
             or getattr(layer, "logit_cap", None) not in (None, 0, 0.0)
         ):
@@ -913,23 +910,31 @@ class FlashAttnV100Backend(AttentionBackend):
         # the 3D flat [tokens, tp_k, 256] layout (viewed to 4D on entry).
         same_dtype = v_cache.dtype == k_cache.dtype
         fp_dtype = k_cache.dtype in (
-            torch.float16, torch.float8_e4m3fn, torch.float8_e5m2
+            torch.float16,
+            torch.float8_e4m3fn,
+            torch.float8_e5m2,
         )
         layout_ok = (
-            (k_cache.ndim == 4 and v_cache.ndim == 4
-             and k_cache.shape[1:3] == (V100_PAGE_SIZE, layer.tp_k_head_num)
-             and k_cache.shape[3] == 256
-             and v_cache.shape[1:3] == (V100_PAGE_SIZE, layer.tp_k_head_num)
-             and v_cache.shape[3] == 256)
-            or (k_cache.ndim == 3 and v_cache.ndim == 3
-                and k_cache.shape[1] == layer.tp_k_head_num
-                and k_cache.shape[2] == 256
-                and v_cache.shape[1] == layer.tp_k_head_num
-                and v_cache.shape[2] == 256)
+            k_cache.ndim == 4
+            and v_cache.ndim == 4
+            and k_cache.shape[1:3] == (V100_PAGE_SIZE, layer.tp_k_head_num)
+            and k_cache.shape[3] == 256
+            and v_cache.shape[1:3] == (V100_PAGE_SIZE, layer.tp_k_head_num)
+            and v_cache.shape[3] == 256
+        ) or (
+            k_cache.ndim == 3
+            and v_cache.ndim == 3
+            and k_cache.shape[1] == layer.tp_k_head_num
+            and k_cache.shape[2] == 256
+            and v_cache.shape[1] == layer.tp_k_head_num
+            and v_cache.shape[2] == 256
         )
         return (
-            fp_dtype and same_dtype and layout_ok
-            and k_cache.stride(-1) == 1 and v_cache.stride(-1) == 1
+            fp_dtype
+            and same_dtype
+            and layout_ok
+            and k_cache.stride(-1) == 1
+            and v_cache.stride(-1) == 1
         )
 
     def _forward_grouped_decode(

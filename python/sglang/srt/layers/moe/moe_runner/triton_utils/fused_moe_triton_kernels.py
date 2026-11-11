@@ -592,10 +592,9 @@ def fused_moe_kernel(
             mant = (nib & 1).to(tl.float32)
             normal = (1.0 + 0.5 * mant) * tl.exp2(expf.to(tl.float32) - 1.0)
             subn = mant * 0.5
-            fp4val = (
-                normal * (1.0 - (expf == 0).to(tl.float32))
-                + subn * (expf == 0).to(tl.float32)
-            )
+            fp4val = normal * (1.0 - (expf == 0).to(tl.float32)) + subn * (
+                expf == 0
+            ).to(tl.float32)
             fp4val = fp4val * (1.0 - 2.0 * ((nib >> 3) & 1).to(tl.float32))
             # E4M3 block scale (group_size == 16) decode. The scale
             # pointer is not advanced per k-tile, so offset by k_start.
@@ -611,9 +610,8 @@ def fused_moe_kernel(
             sf_m = (sf_u & 0x7).to(tl.float32)
             sfn = (1.0 + sf_m / 8.0) * tl.exp2(sf_e.to(tl.float32) - 7.0)
             sfu = sf_m * 0.015625
-            sf = (
-                sfn * (1.0 - (sf_e == 0).to(tl.float32))
-                + sfu * (sf_e == 0).to(tl.float32)
+            sf = sfn * (1.0 - (sf_e == 0).to(tl.float32)) + sfu * (sf_e == 0).to(
+                tl.float32
             )
             sf = sf * (1.0 - 2.0 * sf_s.to(tl.float32))
             b = (fp4val * sf).to(compute_type)

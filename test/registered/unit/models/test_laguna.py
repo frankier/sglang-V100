@@ -164,9 +164,7 @@ class TestLagunaConfig(unittest.TestCase):
                 loaded = get_tokenizer(model_dir, trust_remote_code=False)
 
         self.assertIs(loaded, tokenizer)
-        self.assertIs(
-            from_pretrained.call_args.kwargs["config"], compatibility_config
-        )
+        self.assertIs(from_pretrained.call_args.kwargs["config"], compatibility_config)
         self.assertTrue(from_pretrained.call_args.kwargs["fix_mistral_regex"])
 
     def test_dflash_pure_swa_config_uses_layer_zero_geometry(self):
@@ -256,9 +254,7 @@ class TestLagunaDFlash(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(
-            model.model.layers[0].self_attn.attn.k_scale.item(), 0.03125
-        )
+        self.assertEqual(model.model.layers[0].self_attn.attn.k_scale.item(), 0.03125)
         self.assertAlmostEqual(
             model.model.layers[0].self_attn.attn.v_scale.item(), 0.00125
         )
@@ -272,9 +268,7 @@ class TestLagunaDFlash(unittest.TestCase):
         norm.weight.data = norm.weight.data.half().fill_(1)
 
         branch = torch.tensor([[10_000.0, -10_000.0, 5_000.0]], dtype=torch.float16)
-        residual = torch.tensor(
-            [[40_000.0, -40_000.0, 20_000.0]], dtype=torch.float32
-        )
+        residual = torch.tensor([[40_000.0, -40_000.0, 20_000.0]], dtype=torch.float32)
         normalized, wide_residual = norm.forward_native(branch, residual)
 
         expected_residual = (
@@ -283,14 +277,10 @@ class TestLagunaDFlash(unittest.TestCase):
         variance = expected_residual.square().mean(dim=-1, keepdim=True)
         expected = expected_residual * torch.rsqrt(variance + 1e-6)
         expected = expected.to(torch.bfloat16).float()
-        torch.testing.assert_close(
-            wide_residual, expected_residual, rtol=0, atol=0
-        )
+        torch.testing.assert_close(wide_residual, expected_residual, rtol=0, atol=0)
         self.assertEqual(wide_residual.dtype, torch.float32)
         self.assertTrue(torch.isfinite(wide_residual).all())
-        torch.testing.assert_close(
-            normalized.float(), expected, rtol=2e-3, atol=2e-3
-        )
+        torch.testing.assert_close(normalized.float(), expected, rtol=2e-3, atol=2e-3)
 
     def test_draft_attention_forwards_partial_rotary_factor(self):
         config = SimpleNamespace(

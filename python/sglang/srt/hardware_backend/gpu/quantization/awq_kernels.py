@@ -63,9 +63,7 @@ _SM70_AWQ_PREFILL_DENSE_OOM_WARNED = False
 _SM70_AWQ_PREFILL_DENSE_LOGGED = False
 _SM70_AWQ_TURBOMIND_LOGGED = False
 _SM70_TURBOMIND_OPS_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "jit_kernel"
-    / "_sm70_turbomind_v100.so"
+    Path(__file__).resolve().parents[4] / "jit_kernel" / "_sm70_turbomind_v100.so"
 )
 
 
@@ -158,6 +156,7 @@ def _get_sm70_awq_prefill_dense_workspace(weight: torch.Tensor):
         _SM70_AWQ_PREFILL_DENSE_WORKSPACES[key] = workspace
     return workspace
 
+
 if is_xpu():
     try:
         from sgl_kernel import awq_dequantize
@@ -191,9 +190,7 @@ else:
             if _sm70_awq_repack is not None:
                 awq_marlin_repack = _sm70_awq_repack
 
-                def _sm70_awq_moe_repack(
-                    b_q_weight, _perm, size_k, size_n, num_bits
-                ):
+                def _sm70_awq_moe_repack(b_q_weight, _perm, size_k, size_n, num_bits):
                     # marlin_v100 exposes the real SM70 dense repack op.  Its
                     # MoE helper is a host-side loop over that same op; mirror
                     # it here because SGLang's JIT MoE helper closes over the
@@ -283,14 +280,12 @@ class AWQLinearKernel:
             else None
         )
         output_size = layer.qweight.shape[1] * self.quant_config.pack_factor
-        tm_weight, tm_scales, meta = (
-            torch.ops.sglang_sm70_turbomind.awq_prepare(
-                layer.qweight,
-                layer.scales,
-                layer.qzeros,
-                group_size,
-                False,
-            )
+        tm_weight, tm_scales, meta = torch.ops.sglang_sm70_turbomind.awq_prepare(
+            layer.qweight,
+            layer.scales,
+            layer.qzeros,
+            group_size,
+            False,
         )
         layer._awq_sm70_weight = tm_weight
         layer._awq_sm70_scales = tm_scales
@@ -319,9 +314,7 @@ class AWQLinearKernel:
         )
         global _SM70_AWQ_PREFILL_DENSE_LOGGED, _SM70_AWQ_TURBOMIND_LOGGED
         if workspace is not None and not _SM70_AWQ_PREFILL_DENSE_LOGGED:
-            logger.info(
-                "SM70 AWQ: enabled bounded 85 MiB exact-dense M=4096 path."
-            )
+            logger.info("SM70 AWQ: enabled bounded 85 MiB exact-dense M=4096 path.")
             _SM70_AWQ_PREFILL_DENSE_LOGGED = True
         if not _SM70_AWQ_TURBOMIND_LOGGED:
             logger.info("SM70 AWQ: enabled compact TurboMind dense path.")

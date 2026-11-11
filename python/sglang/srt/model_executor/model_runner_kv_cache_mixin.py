@@ -732,15 +732,11 @@ class ModelRunnerKVCacheMixin:
                         qsa_compress_ratio=qsa_profile.compress_ratio,
                         qsa_token_topk=qsa_profile.budget,
                         index_state_dtype=self.dtype,
-                        num_request_slots=self.req_to_token_pool.req_to_token.shape[
-                            0
-                        ],
+                        num_request_slots=self.req_to_token_pool.req_to_token.shape[0],
                     )
                     # The compressed QSA pool is a full-attention KV page
                     # multiple of the ratio; enforce it up front.
-                    assert (
-                        pool_kwargs["page_size"] % qsa_profile.compress_ratio == 0
-                    ), (
+                    assert pool_kwargs["page_size"] % qsa_profile.compress_ratio == 0, (
                         "compressed QSA requires page_size a multiple of "
                         "qsa_compress_ratio"
                     )

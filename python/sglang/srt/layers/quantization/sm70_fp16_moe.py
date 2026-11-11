@@ -27,9 +27,7 @@ def _load_sm70_ops() -> bool:
     if _OPS_LOAD_ATTEMPTED:
         return _OPS_AVAILABLE
     _OPS_LOAD_ATTEMPTED = True
-    ops_path = Path(
-        os.environ.get("SGLANG_SM70_TURBOMIND_OPS_PATH", _DEFAULT_OPS_PATH)
-    )
+    ops_path = Path(os.environ.get("SGLANG_SM70_TURBOMIND_OPS_PATH", _DEFAULT_OPS_PATH))
     try:
         torch.ops.load_library(str(ops_path))
         ops = torch.ops.sglang_sm70_turbomind
@@ -97,15 +95,11 @@ class SM70FP16MoEMethod(UnquantizedFusedMoEMethod):
         layer.w2_weight = None
 
         layer.w13_weight_ptrs = Parameter(
-            ops.f16_moe_build_ptrs(
-                layer.w13_tm_weight, w13_k_ld, num_experts
-            )[0],
+            ops.f16_moe_build_ptrs(layer.w13_tm_weight, w13_k_ld, num_experts)[0],
             requires_grad=False,
         )
         layer.w2_weight_ptrs = Parameter(
-            ops.f16_moe_build_ptrs(
-                layer.w2_tm_weight, w2_k_ld, num_experts
-            )[0],
+            ops.f16_moe_build_ptrs(layer.w2_tm_weight, w2_k_ld, num_experts)[0],
             requires_grad=False,
         )
 
@@ -137,12 +131,8 @@ class SM70FP16MoEMethod(UnquantizedFusedMoEMethod):
         layer.sm70_output = torch.empty(
             max_tokens, h, dtype=torch.float16, device=device
         )
-        layer.sm70_permuted = torch.empty(
-            slots, h, dtype=torch.float16, device=device
-        )
-        layer.sm70_gate_up = torch.empty(
-            slots, i, dtype=torch.float16, device=device
-        )
+        layer.sm70_permuted = torch.empty(slots, h, dtype=torch.float16, device=device)
+        layer.sm70_gate_up = torch.empty(slots, i, dtype=torch.float16, device=device)
         layer.sm70_sorted_output = torch.empty(
             slots, h, dtype=torch.float16, device=device
         )
@@ -157,9 +147,7 @@ class SM70FP16MoEMethod(UnquantizedFusedMoEMethod):
         ).view(max_tokens, k)
         layer.sm70_permuted_idx = torch.empty(slots, dtype=torch.int32, device=device)
         workspace_size = (
-            torch.ops.sglang_sm70_turbomind.moe_permute_sort_workspace_size(
-                slots, e
-            )
+            torch.ops.sglang_sm70_turbomind.moe_permute_sort_workspace_size(slots, e)
         )
         layer.sm70_sort_workspace = torch.empty(
             workspace_size, dtype=torch.int8, device=device
@@ -212,9 +200,9 @@ class SM70FP16MoEMethod(UnquantizedFusedMoEMethod):
             offsets32 = torch.empty(e + 1, dtype=torch.int32, device=device)
             inverse = torch.empty(tokens, k, dtype=torch.int32, device=device)
             ids32 = torch.empty(tokens, k, dtype=torch.int32, device=device)
-            token_expert = torch.arange(
-                slots, dtype=torch.int32, device=device
-            ).view(tokens, k)
+            token_expert = torch.arange(slots, dtype=torch.int32, device=device).view(
+                tokens, k
+            )
             permuted_idx = torch.empty(slots, dtype=torch.int32, device=device)
             workspace_size = (
                 torch.ops.sglang_sm70_turbomind.moe_permute_sort_workspace_size(
@@ -224,9 +212,7 @@ class SM70FP16MoEMethod(UnquantizedFusedMoEMethod):
             sort_workspace = torch.empty(
                 workspace_size, dtype=torch.int8, device=device
             )
-            permuted_experts = torch.empty(
-                tokens, k, dtype=torch.int32, device=device
-            )
+            permuted_experts = torch.empty(tokens, k, dtype=torch.int32, device=device)
             sorted_rows = torch.empty(tokens, k, dtype=torch.int32, device=device)
             ids_for_sort = torch.empty(tokens, k, dtype=torch.int32, device=device)
         output.zero_()

@@ -9,6 +9,7 @@ from typing import Any
 
 import torch
 import torch.nn as nn
+
 from sglang.multimodal_gen.configs.models.encoders.base import BaseEncoderOutput
 from sglang.multimodal_gen.configs.models.encoders.minimax_h3_qwen3vl import (
     MINIMAX_H3_QWEN3VL_SELECTED_LM_LAYER,

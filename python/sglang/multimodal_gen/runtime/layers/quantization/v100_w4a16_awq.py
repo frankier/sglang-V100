@@ -18,6 +18,8 @@ from typing import Any
 
 import torch
 import torch.nn.functional as F
+from torch import nn
+
 from sglang.multimodal_gen.runtime.layers.linear import (
     LinearBase,
     LinearMethodBase,
@@ -28,7 +30,6 @@ from sglang.multimodal_gen.runtime.layers.quantization.configs.base_config impor
     QuantizeMethodBase,
 )
 from sglang.multimodal_gen.runtime.models.parameter import ModelWeightParameter
-from torch import nn
 
 _AWQ_PACK_ORDER = (0, 2, 4, 6, 1, 3, 5, 7)
 _AWQ_REVERSE_ORDER = (0, 4, 1, 5, 2, 6, 3, 7)

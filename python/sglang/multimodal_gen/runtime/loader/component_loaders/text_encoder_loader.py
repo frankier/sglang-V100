@@ -7,6 +7,11 @@ from typing import cast
 
 import torch
 import torch.distributed as dist
+from torch import nn
+from torch.distributed import init_device_mesh
+from transformers import AutoModel
+from transformers.utils import SAFE_WEIGHTS_INDEX_NAME
+
 from sglang.multimodal_gen.configs.models import EncoderConfig, ModelConfig
 from sglang.multimodal_gen.configs.models.encoders.minimax_h3_qwen3vl import (
     MiniMaxH3Qwen3VLConfig,
@@ -43,10 +48,6 @@ from sglang.multimodal_gen.runtime.utils.hf_diffusers_utils import (
 from sglang.multimodal_gen.runtime.utils.logging_utils import init_logger
 from sglang.multimodal_gen.utils import PRECISION_TO_TYPE
 from sglang.srt.environ import envs
-from torch import nn
-from torch.distributed import init_device_mesh
-from transformers import AutoModel
-from transformers.utils import SAFE_WEIGHTS_INDEX_NAME
 
 logger = init_logger(__name__)
 

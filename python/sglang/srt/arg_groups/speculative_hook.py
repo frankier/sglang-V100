@@ -243,10 +243,7 @@ def _handle_dflash(server_args: "ServerArgs") -> None:
             server_args.speculative_dflash_block_size
         )
 
-    if (
-        server_args.speculative_num_draft_tokens is None
-        and is_laguna_dflash_on_v100
-    ):
+    if server_args.speculative_num_draft_tokens is None and is_laguna_dflash_on_v100:
         # The checkpoint stores the block-16 throughput configuration, while
         # Poolside recommends seven speculative tokens (block size 8) for
         # general serving. Use that neutral default on SM70. Block 16 remains
@@ -327,7 +324,9 @@ def _handle_dspark(server_args: "ServerArgs") -> None:
     verification width.  The latter is therefore gamma + 1 for the anchor.
     """
     if server_args.enable_dp_attention:
-        raise ValueError("DSPARK speculative decoding does not support dp attention yet.")
+        raise ValueError(
+            "DSPARK speculative decoding does not support dp attention yet."
+        )
     if server_args.pp_size != 1:
         raise ValueError("DSPARK speculative decoding only supports pp_size == 1.")
     if server_args.speculative_draft_model_path is None:
@@ -479,9 +478,10 @@ def _handle_eagle_family(server_args: "ServerArgs") -> None:
         )
 
     model_arch = server_args.get_model_config().hf_config.architectures[0]
-    if model_arch in (
-        _BUILTIN_MTP_MODEL_ARCHS | _OPTIONAL_EXTERNAL_MTP_MODEL_ARCHS
-    ) or model_arch == "Qwen4ExpForConditionalGeneration":
+    if (
+        model_arch in (_BUILTIN_MTP_MODEL_ARCHS | _OPTIONAL_EXTERNAL_MTP_MODEL_ARCHS)
+        or model_arch == "Qwen4ExpForConditionalGeneration"
+    ):
         if server_args.speculative_draft_model_path is None:
             server_args.speculative_draft_model_path = server_args.model_path
             server_args.speculative_draft_model_revision = server_args.revision

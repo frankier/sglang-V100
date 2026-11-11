@@ -8,33 +8,39 @@
 #include <sgl_kernel/utils.cuh>
 namespace mtp_fusion_probe {
 template <int THREADS>
-__global__ void kernel(const half* __restrict__ x,
-                       const half* __restrict__ weight,
-                       const half* __restrict__ value, half* __restrict__ out) {
-  x += blockIdx.x * 2560; value += blockIdx.x * 2560; out += blockIdx.x * 2560;
+__global__ void kernel(const half *__restrict__ x,
+                       const half *__restrict__ weight,
+                       const half *__restrict__ value, half *__restrict__ out) {
+  x += blockIdx.x * 2560;
+  value += blockIdx.x * 2560;
+  out += blockIdx.x * 2560;
   float a[8] = {};
   for (int k = threadIdx.x * 8; k < 2560; k += THREADS * 8) {
-    int4 xv = *reinterpret_cast<const int4*>(x + k),
-         wv = *reinterpret_cast<const int4*>(weight + k);
-    const half* hx = reinterpret_cast<const half*>(&xv);
-    const half* hw = reinterpret_cast<const half*>(&wv);
+    int4 xv = *reinterpret_cast<const int4 *>(x + k),
+         wv = *reinterpret_cast<const int4 *>(weight + k);
+    const half *hx = reinterpret_cast<const half *>(&xv);
+    const half *hw = reinterpret_cast<const half *>(&wv);
 #pragma unroll
     for (int i = 0; i < 8; ++i)
       a[i] = fmaf(__half2float(hx[i]), __half2float(hw[i]), a[i]);
   }
   float sum = 0;
 #pragma unroll
-  for (int i = 0; i < 8; ++i) sum += a[i];
+  for (int i = 0; i < 8; ++i)
+    sum += a[i];
 #pragma unroll
-  for (int d = 16; d > 0; d /= 2) sum += __shfl_down_sync(0xffffffff, sum, d);
+  for (int d = 16; d > 0; d /= 2)
+    sum += __shfl_down_sync(0xffffffff, sum, d);
   __shared__ float parts[THREADS / 32];
   __shared__ float gate;
-  if (threadIdx.x % 32 == 0) parts[threadIdx.x / 32] = sum;
+  if (threadIdx.x % 32 == 0)
+    parts[threadIdx.x / 32] = sum;
   __syncthreads();
   if (threadIdx.x == 0) {
     sum = 0;
 #pragma unroll
-    for (int i = 0; i < THREADS / 32; ++i) sum += parts[i];
+    for (int i = 0; i < THREADS / 32; ++i)
+      sum += parts[i];
     sum = __half2float(__float2half_rn(sum));
     gate = __half2float(__float2half_rn(1.f / (1.f + __expf(-sum))));
   }
@@ -49,23 +55,28 @@ void run(tvm::ffi::TensorView x, tvm::ffi::TensorView weight,
   auto dev = SymbolicDevice{};
   dev.set_options<kDLCUDA>();
   auto M = SymbolicSize{};
-  TensorMatcher({M, 2560}).with_dtype<half>().with_device(dev).verify(x).verify(value).verify(out);
-  TensorMatcher({1,2560}).with_dtype<half>().with_device(dev).verify(weight);
+  TensorMatcher({M, 2560})
+      .with_dtype<half>()
+      .with_device(dev)
+      .verify(x)
+      .verify(value)
+      .verify(out);
+  TensorMatcher({1, 2560}).with_dtype<half>().with_device(dev).verify(weight);
   RuntimeCheck(reinterpret_cast<uintptr_t>(x.data_ptr()) % 16 == 0 &&
                    reinterpret_cast<uintptr_t>(weight.data_ptr()) % 16 == 0,
                "Operands must be 16-byte aligned");
   LaunchKernel(M.unwrap(), THREADS, dev.unwrap())(
-      kernel<THREADS>, static_cast<const half*>(x.data_ptr()),
-      static_cast<const half*>(weight.data_ptr()),
-      static_cast<const half*>(value.data_ptr()),
-      static_cast<half*>(out.data_ptr()));
+      kernel<THREADS>, static_cast<const half *>(x.data_ptr()),
+      static_cast<const half *>(weight.data_ptr()),
+      static_cast<const half *>(value.data_ptr()),
+      static_cast<half *>(out.data_ptr()));
 }
-}  // namespace mtp_fusion_probe
+} // namespace mtp_fusion_probe
 namespace mtp_fusion_probe {
 template <int M>
-__global__ void gate_up_kernel(const half* __restrict__ x,
-                               const half* __restrict__ w,
-                               half* __restrict__ out) {
+__global__ void gate_up_kernel(const half *__restrict__ x,
+                               const half *__restrict__ w,
+                               half *__restrict__ out) {
   const int warp = threadIdx.x / 32, lane = threadIdx.x % 32;
   const int n = blockIdx.x * 4 + warp / 2;
   const int row = n + (warp % 2) * 160;
@@ -73,32 +84,36 @@ __global__ void gate_up_kernel(const half* __restrict__ x,
 #pragma unroll
   for (int j = 0; j < 10; ++j) {
     const int k = lane * 8 + j * 256;
-    const int4 wv = *reinterpret_cast<const int4*>(w + row * 2560 + k);
-    const half* hw = reinterpret_cast<const half*>(&wv);
+    const int4 wv = *reinterpret_cast<const int4 *>(w + row * 2560 + k);
+    const half *hw = reinterpret_cast<const half *>(&wv);
 #pragma unroll
-    for (int m=0; m<M; ++m) {
-      const int4 xv = *reinterpret_cast<const int4*>(x + m*2560 + k);
-      const half* hx = reinterpret_cast<const half*>(&xv);
+    for (int m = 0; m < M; ++m) {
+      const int4 xv = *reinterpret_cast<const int4 *>(x + m * 2560 + k);
+      const half *hx = reinterpret_cast<const half *>(&xv);
 #pragma unroll
-      for(int i=0;i<8;++i) a[m][i] = fmaf(__half2float(hx[i]),__half2float(hw[i]),a[m][i]);
+      for (int i = 0; i < 8; ++i)
+        a[m][i] = fmaf(__half2float(hx[i]), __half2float(hw[i]), a[m][i]);
     }
   }
   __shared__ float vals[M][8];
 #pragma unroll
-  for (int m=0;m<M;++m) {
+  for (int m = 0; m < M; ++m) {
     float sum = 0;
 #pragma unroll
-    for (int i=0;i<8;++i)sum+=a[m][i];
+    for (int i = 0; i < 8; ++i)
+      sum += a[m][i];
 #pragma unroll
-    for(int d=16;d>0;d/=2)sum+=__shfl_down_sync(0xffffffff,sum,d);
-    if(lane==0)vals[m][warp]=__half2float(__float2half_rn(sum));
+    for (int d = 16; d > 0; d /= 2)
+      sum += __shfl_down_sync(0xffffffff, sum, d);
+    if (lane == 0)
+      vals[m][warp] = __half2float(__float2half_rn(sum));
   }
   __syncthreads();
-  if (lane==0 && warp%2==0) {
+  if (lane == 0 && warp % 2 == 0) {
 #pragma unroll
-    for(int m=0;m<M;++m) {
-      float g=vals[m][warp],u=vals[m][warp+1];
-      out[m*160+n]=__float2half_rn(g/(1.f+__expf(-g))*u);
+    for (int m = 0; m < M; ++m) {
+      float g = vals[m][warp], u = vals[m][warp + 1];
+      out[m * 160 + n] = __float2half_rn(g / (1.f + __expf(-g)) * u);
     }
   }
 }
@@ -115,8 +130,8 @@ void gate_up(tvm::ffi::TensorView x, tvm::ffi::TensorView weight,
                    reinterpret_cast<uintptr_t>(weight.data_ptr()) % 16 == 0,
                "Operands must be 16-byte aligned");
   LaunchKernel(40, 256, dev.unwrap())(
-      gate_up_kernel<M>, static_cast<const half*>(x.data_ptr()),
-      static_cast<const half*>(weight.data_ptr()),
-      static_cast<half*>(out.data_ptr()));
+      gate_up_kernel<M>, static_cast<const half *>(x.data_ptr()),
+      static_cast<const half *>(weight.data_ptr()),
+      static_cast<half *>(out.data_ptr()));
 }
-}  // namespace mtp_fusion_probe
+} // namespace mtp_fusion_probe

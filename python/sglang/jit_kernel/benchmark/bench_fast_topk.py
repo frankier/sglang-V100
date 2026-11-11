@@ -1,4 +1,5 @@
 import torch
+
 from sglang.kernels.jit.benchmark import marker
 from sglang.kernels.jit.benchmark.utils import create_random
 from sglang.kernels.ops.elementwise.fast_topk import fast_topk as jit_fast_topk

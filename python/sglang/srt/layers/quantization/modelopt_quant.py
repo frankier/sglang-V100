@@ -1971,10 +1971,7 @@ class ModelOptNvFp4FusedMoEMethod(FusedMoEMethodBase):
             # scales directly. ModelOpt emits matching gate/up scales for a
             # fused W13 tensor; process_weights_after_loading validated this
             # above and selected the gate scale.
-            if (
-                layer.moe_runner_config.is_gated
-                and layer.w13_weight_scale_2.dim() == 2
-            ):
+            if layer.moe_runner_config.is_gated and layer.w13_weight_scale_2.dim() == 2:
                 w13_scale2 = layer.w13_weight_scale_2[:, 0].to(torch.float32)
             else:
                 w13_scale2 = layer.w13_weight_scale_2.to(torch.float32)
@@ -2026,10 +2023,7 @@ class ModelOptNvFp4FusedMoEMethod(FusedMoEMethodBase):
                 num_experts, size_n, packed_k = weight.shape
                 size_k = packed_k * 2
                 gptq_layout = (
-                    weight.contiguous()
-                    .view(torch.int32)
-                    .transpose(1, 2)
-                    .contiguous()
+                    weight.contiguous().view(torch.int32).transpose(1, 2).contiguous()
                 )
                 empty_perm = torch.empty(
                     (num_experts, 0),
@@ -2054,17 +2048,13 @@ class ModelOptNvFp4FusedMoEMethod(FusedMoEMethodBase):
             # marlin_v100 consumes logical [E,K/16,N] metadata encoded in its
             # special non-negative S0E5M3 representation.  Passing the native
             # checkpoint E4M3 bytes here makes the GEMM underflow to ~zero.
-            w13_marlin_scales, w13_scale_factor = (
-                sm70_nvfp4_marlin_process_scales(
-                    layer.w13_weight_scale.transpose(1, 2).contiguous(),
-                    layer.params_dtype,
-                )
+            w13_marlin_scales, w13_scale_factor = sm70_nvfp4_marlin_process_scales(
+                layer.w13_weight_scale.transpose(1, 2).contiguous(),
+                layer.params_dtype,
             )
-            w2_marlin_scales, w2_scale_factor = (
-                sm70_nvfp4_marlin_process_scales(
-                    layer.w2_weight_scale.transpose(1, 2).contiguous(),
-                    layer.params_dtype,
-                )
+            w2_marlin_scales, w2_scale_factor = sm70_nvfp4_marlin_process_scales(
+                layer.w2_weight_scale.transpose(1, 2).contiguous(),
+                layer.params_dtype,
             )
             copy_or_rebind_param(
                 layer,
@@ -2079,9 +2069,7 @@ class ModelOptNvFp4FusedMoEMethod(FusedMoEMethodBase):
             copy_or_rebind_param(
                 layer,
                 "w13_scale2",
-                sm70_nvfp4_marlin_process_global_scale(
-                    w13_scale2, layer.params_dtype
-                )
+                sm70_nvfp4_marlin_process_global_scale(w13_scale2, layer.params_dtype)
                 / w13_scale_factor,
             )
             copy_or_rebind_param(

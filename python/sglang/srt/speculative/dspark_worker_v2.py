@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 
 import torch
+
 from sglang.srt.managers.tp_worker import TpModelWorker
 from sglang.srt.model_executor.forward_batch_info import CaptureHiddenMode
 from sglang.srt.server_args import ServerArgs
@@ -101,9 +102,7 @@ class DSparkWorkerV2(DFlashWorkerV2):
                 raise RuntimeError(
                     "DSPARK requires the target model to expose `lm_head` with `weight`."
                 )
-            graph_bs = server_args.cuda_graph_bs or [
-                server_args.cuda_graph_max_bs or 1
-            ]
+            graph_bs = server_args.cuda_graph_bs or [server_args.cuda_graph_max_bs or 1]
             self._graph_sampler = _DSparkGraphSampler(
                 model=self.draft_model,
                 lm_head=lm_head,

@@ -176,7 +176,9 @@ class MiniMaxH3PipelineConfig(PipelineConfig):
                 "video_vae": self.vae_precision,
                 "audio_vae": self.audio_vae_precision,
             }
-            non_fp16 = {name: value for name, value in precisions.items() if value != "fp16"}
+            non_fp16 = {
+                name: value for name, value in precisions.items() if value != "fp16"
+            }
             if non_fp16:
                 raise ValueError(
                     "MiniMax-H3 on V100 requires FP16 component precisions; "

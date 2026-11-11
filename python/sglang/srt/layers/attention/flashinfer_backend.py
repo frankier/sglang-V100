@@ -730,7 +730,10 @@ class FlashInferAttnBackend(AttentionBackend):
         # fast_decode_plan requires _cached_module set by the initial full
         # begin_forward call above; install it only after that first plan runs.
         # Skip for sm70 (TileLang backend doesn't use FA2 ABI)
-        if forward_mode.is_decode_or_idle() and torch.cuda.get_device_capability()[0] >= 8:
+        if (
+            forward_mode.is_decode_or_idle()
+            and torch.cuda.get_device_capability()[0] >= 8
+        ):
             for w in self.decode_cuda_graph_metadata[bs]:
                 w.begin_forward = partial(fast_decode_plan, w)
 
@@ -865,10 +868,14 @@ class FlashInferAttnBackend(AttentionBackend):
                     num_seqs = seq_lens.numel()
                     ext_seq_lens = seq_lens - flatten_prefix_lens
 
-                    qo_indptr = torch.zeros(num_seqs + 1, dtype=torch.int32, device=self.device)
+                    qo_indptr = torch.zeros(
+                        num_seqs + 1, dtype=torch.int32, device=self.device
+                    )
                     qo_indptr[1:] = torch.cumsum(ext_seq_lens, dim=0)
 
-                    kv_indptr = torch.zeros(num_seqs + 1, dtype=torch.int32, device=self.device)
+                    kv_indptr = torch.zeros(
+                        num_seqs + 1, dtype=torch.int32, device=self.device
+                    )
                     kv_indptr[1:] = torch.cumsum(flat_seq_lens, dim=0)
 
                     self.prefill_wrapper_ragged.begin_forward(
@@ -993,7 +1000,10 @@ class FlashInferAttnBackend(AttentionBackend):
                         # single ragged forward over full_KV replaces merge_state of
                         # ragged(new) + paged(prefix).
                         full_seq_lens = forward_batch.seq_lens
-                        causal = not layer.is_cross_attention and layer.attn_type != AttentionType.ENCODER_ONLY
+                        causal = (
+                            not layer.is_cross_attention
+                            and layer.attn_type != AttentionType.ENCODER_ONLY
+                        )
                         swa_window_left = (
                             layer.sliding_window_size
                             if not (
@@ -1004,9 +1014,13 @@ class FlashInferAttnBackend(AttentionBackend):
                         )
                         num_seqs = full_seq_lens.numel()
                         ext_seq_lens = full_seq_lens - flatten_prefix_lens
-                        qo_indptr = torch.zeros(num_seqs + 1, dtype=torch.int32, device=self.device)
+                        qo_indptr = torch.zeros(
+                            num_seqs + 1, dtype=torch.int32, device=self.device
+                        )
                         qo_indptr[1:] = torch.cumsum(ext_seq_lens, dim=0)
-                        kv_indptr = torch.zeros(num_seqs + 1, dtype=torch.int32, device=self.device)
+                        kv_indptr = torch.zeros(
+                            num_seqs + 1, dtype=torch.int32, device=self.device
+                        )
                         kv_indptr[1:] = torch.cumsum(full_seq_lens, dim=0)
                         self.prefill_wrapper_ragged.begin_forward(
                             qo_indptr,
@@ -1017,7 +1031,9 @@ class FlashInferAttnBackend(AttentionBackend):
                             causal=causal,
                             q_data_type=q.dtype,
                             kv_data_type=k.dtype,
-                            prefix_len_ptr=flatten_prefix_lens.clamp(min=0).to(self.device),
+                            prefix_len_ptr=flatten_prefix_lens.clamp(min=0).to(
+                                self.device
+                            ),
                             seq_lens_q=ext_seq_lens,
                             seq_lens=full_seq_lens,
                         )
@@ -1032,7 +1048,10 @@ class FlashInferAttnBackend(AttentionBackend):
                         )
                     else:
                         # No prefix tokens — fall through to simple ragged (shouldn't happen here)
-                        causal = not layer.is_cross_attention and layer.attn_type != AttentionType.ENCODER_ONLY
+                        causal = (
+                            not layer.is_cross_attention
+                            and layer.attn_type != AttentionType.ENCODER_ONLY
+                        )
                         o = self.prefill_wrapper_ragged.forward(
                             q.view(-1, layer.tp_q_head_num, layer.head_dim),
                             k.view(-1, layer.tp_k_head_num, layer.head_dim),

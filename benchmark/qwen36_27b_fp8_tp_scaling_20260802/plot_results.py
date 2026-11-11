@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent
 WIDTH = 1440
 HEIGHT = 560
@@ -30,9 +29,11 @@ def esc(value: object) -> str:
 
 def line(x1: float, y1: float, x2: float, y2: float, **attrs: object) -> str:
     values = {"x1": x1, "y1": y1, "x2": x2, "y2": y2, **attrs}
-    return "<line " + " ".join(
-        f'{key}="{esc(value)}"' for key, value in values.items()
-    ) + "/>"
+    return (
+        "<line "
+        + " ".join(f'{key}="{esc(value)}"' for key, value in values.items())
+        + "/>"
+    )
 
 
 def text(x: float, y: float, value: object, **attrs: object) -> str:

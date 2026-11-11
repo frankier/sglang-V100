@@ -410,11 +410,12 @@ class OpenAIServingChat(OpenAIServingBase):
             }
             if media_types:
                 media_names = ", ".join(
-                    sorted(media_type.removesuffix("_url") for media_type in media_types)
+                    sorted(
+                        media_type.removesuffix("_url") for media_type in media_types
+                    )
                 )
                 return (
-                    "This model does not support multimodal input "
-                    f"({media_names})."
+                    "This model does not support multimodal input " f"({media_names})."
                 )
 
         if (

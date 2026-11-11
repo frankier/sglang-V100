@@ -110,8 +110,8 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
   m.impl("fast_topk_transform_ragged_fused", torch::kCUDA, &fast_topk_transform_ragged_interface);
 
   /*
-    * From csrc/gemm
-    */
+   * From csrc/gemm
+   */
 #if !defined(SGL_KERNEL_V100_ONLY)
   m.def("awq_dequantize(Tensor qweight, Tensor scales, Tensor qzeros) -> Tensor");
   m.impl("awq_dequantize", torch::kCUDA, &awq_dequantize);
@@ -503,8 +503,8 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
   m.impl("causal_conv1d_fwd", torch::kCUDA, &causal_conv1d_fwd);
 
   /*
-    * From csrc/expert_sepcialization
-    */
+   * From csrc/expert_sepcialization
+   */
 #if !defined(SGL_KERNEL_V100_ONLY)
   m.def(
       "es_fp8_blockwise_scaled_grouped_mm(Tensor output, Tensor a, Tensor b, Tensor scales_a, Tensor scales_b, Tensor "

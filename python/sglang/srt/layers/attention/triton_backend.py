@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
@@ -9,7 +10,6 @@ import triton.language as tl
 
 from sglang.srt.configs.model_config import AttentionArch
 from sglang.srt.layers.attention.base_attn_backend import AttentionBackend
-import logging
 
 logger = logging.getLogger(__name__)
 from sglang.srt.layers.attention.utils import create_flashinfer_kv_indices_triton
@@ -28,6 +28,8 @@ def _flatten_paged_kv_cache(buf: torch.Tensor) -> torch.Tensor:
     if buf.ndim == 4:
         return buf.view(-1, buf.shape[-2], buf.shape[-1])
     return buf
+
+
 from sglang.srt.layers.dp_attention import get_attention_tp_size
 from sglang.srt.layers.radix_attention import AttentionType
 from sglang.srt.mem_cache.swa_memory_pool import SWAKVPool

@@ -15,7 +15,6 @@ from typing import Any, Callable
 
 import requests
 
-
 ADD_TOOL = {
     "type": "function",
     "function": {
@@ -143,9 +142,7 @@ class Audit:
         self.multimodal_mode = multimodal_mode
         image_bytes = image_path.read_bytes()
         mime = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
-        self.image_url = (
-            f"data:{mime};base64," + base64.b64encode(image_bytes).decode()
-        )
+        self.image_url = f"data:{mime};base64," + base64.b64encode(image_bytes).decode()
         self.image_info = {
             "path": str(image_path),
             "bytes": len(image_bytes),
@@ -171,9 +168,7 @@ class Audit:
             )
         return body, elapsed
 
-    def expect_multimodal_unsupported(
-        self, payload: dict[str, Any]
-    ) -> dict[str, Any]:
+    def expect_multimodal_unsupported(self, payload: dict[str, Any]) -> dict[str, Any]:
         started = time.perf_counter()
         response = requests.post(
             f"{self.base_url}/v1/chat/completions",
@@ -250,8 +245,12 @@ class Audit:
         message = body["choices"][0]["message"]
         reasoning = message.get("reasoning_content") or ""
         content = message.get("content") or ""
-        reasoning_audit = audit_text("reasoning_enabled.reasoning", reasoning, minimum_chars=20)
-        content_audit = audit_text("reasoning_enabled.content", content, minimum_chars=9)
+        reasoning_audit = audit_text(
+            "reasoning_enabled.reasoning", reasoning, minimum_chars=20
+        )
+        content_audit = audit_text(
+            "reasoning_enabled.content", content, minimum_chars=9
+        )
         assert "37" in content, f"missing correct answer: {content!r}"
         assert "<think>" not in content and "</think>" not in content
         usage = body.get("usage") or {}
@@ -399,7 +398,9 @@ class Audit:
             stream=True,
             timeout=900,
         )
-        assert response.status_code == 200, f"HTTP {response.status_code}: {response.text}"
+        assert (
+            response.status_code == 200
+        ), f"HTTP {response.status_code}: {response.text}"
         events: list[dict[str, Any]] = []
         calls: dict[int, dict[str, str]] = {}
         finish_reasons: list[str] = []
@@ -474,7 +475,9 @@ class Audit:
         assert any(word in lowered for word in ("man", "person")), content
         assert "iron" in lowered, content
         assert "yellow" in lowered, content
-        assert any(word in lowered for word in ("taxi", "cab", "vehicle", "suv")), content
+        assert any(
+            word in lowered for word in ("taxi", "cab", "vehicle", "suv")
+        ), content
         assert not (message.get("reasoning_content") or "")
         return {
             "request": compact_request(payload),
@@ -518,7 +521,9 @@ class Audit:
         lowered = (reasoning + "\n" + content).lower()
         assert "unusual" in content.lower(), content
         assert "iron" in lowered, content
-        assert any(word in lowered for word in ("taxi", "cab", "vehicle", "suv")), content
+        assert any(
+            word in lowered for word in ("taxi", "cab", "vehicle", "suv")
+        ), content
         usage = body.get("usage") or {}
         assert usage.get("reasoning_tokens", 0) > 0, usage
         return {
@@ -576,7 +581,9 @@ class Audit:
         joined = " ".join(str(value) for value in arguments.values()).lower()
         assert "iron" in joined, arguments
         assert "yellow" in joined, arguments
-        assert any(word in joined for word in ("taxi", "cab", "vehicle", "suv")), arguments
+        assert any(
+            word in joined for word in ("taxi", "cab", "vehicle", "suv")
+        ), arguments
         assert body["choices"][0]["finish_reason"] == "tool_calls"
         return {
             "request": compact_request(payload),

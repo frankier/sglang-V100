@@ -45,9 +45,7 @@ def _laguna_silu_and_mul_sm70_kernel(
     # W13 is evaluated from an input divided by gate_up_scale so its FP16
     # output cannot overflow. Restore the mathematical value in FP32, then
     # reproduce the BF16 rounding points used by the reference model.
-    gate = tl.load(gate_up_ptr + input_offsets, mask=mask, other=0.0).to(
-        tl.float32
-    )
+    gate = tl.load(gate_up_ptr + input_offsets, mask=mask, other=0.0).to(tl.float32)
     up = tl.load(gate_up_ptr + input_offsets + n_cols, mask=mask, other=0.0).to(
         tl.float32
     )
@@ -106,14 +104,14 @@ def _laguna_rmsnorm_kernel(
 
     value = tl.load(x_ptr + row_offsets, mask=mask, other=0.0).to(tl.float32)
     if HAS_RESIDUAL:
-        residual = tl.load(
-            residual_ptr + row_offsets, mask=mask, other=0.0
-        ).to(tl.float32)
+        residual = tl.load(residual_ptr + row_offsets, mask=mask, other=0.0).to(
+            tl.float32
+        )
         value = value * residual_scale + residual
         if HAS_POST_RESIDUAL:
-            value += tl.load(
-                post_residual_ptr + row_offsets, mask=mask, other=0.0
-            ).to(tl.float32)
+            value += tl.load(post_residual_ptr + row_offsets, mask=mask, other=0.0).to(
+                tl.float32
+            )
 
         value = _round_fp32_to_bf16_rne(value)
         tl.store(residual_output_ptr + row_offsets, value, mask=mask)
@@ -145,7 +143,10 @@ def laguna_rmsnorm_sm70(
         x = x.contiguous()
     if residual is not None and not residual.is_contiguous():
         residual = residual.contiguous()
-    if post_residual_addition is not None and not post_residual_addition.is_contiguous():
+    if (
+        post_residual_addition is not None
+        and not post_residual_addition.is_contiguous()
+    ):
         post_residual_addition = post_residual_addition.contiguous()
 
     n_rows, n_cols = x.shape

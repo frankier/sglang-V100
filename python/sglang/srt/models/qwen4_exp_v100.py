@@ -27,9 +27,7 @@ def _v100_ngram_embedding_init(
     if self.ngram_size < 2:
         raise ValueError(f"ngram_size must be >= 2, got {self.ngram_size}")
     if self.heads_per_ngram <= 0:
-        raise ValueError(
-            f"heads_per_ngram must be > 0, got {self.heads_per_ngram}"
-        )
+        raise ValueError(f"heads_per_ngram must be > 0, got {self.heads_per_ngram}")
     if self.ngram_embed_dim % self.ngram_heads != 0:
         raise ValueError(
             "ple_embed_dim must be divisible by total ngram heads: "
@@ -85,12 +83,8 @@ def _v100_ngram_embedding_init(
             self.head_dim_per_ngram,
             params_dtype=(
                 _base.torch.float8_e4m3fn
-                if (
-                    quant_config is not None
-                    and quant_config.get_name() == "fp8"
-                )
-                or getattr(config, "ple_embedding_dtype", None)
-                == "float8_e4m3fn"
+                if (quant_config is not None and quant_config.get_name() == "fp8")
+                or getattr(config, "ple_embedding_dtype", None) == "float8_e4m3fn"
                 else _base.torch.bfloat16
             ),
             output_dtype=_base.torch.get_default_dtype(),

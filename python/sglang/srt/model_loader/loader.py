@@ -258,7 +258,11 @@ def _get_quantization_config(
                         _sm70_marlin_v100_available,
                     )
 
-                    if capability == 70 and min_cap == 80 and _sm70_marlin_v100_available():
+                    if (
+                        capability == 70
+                        and min_cap == 80
+                        and _sm70_marlin_v100_available()
+                    ):
                         logger.info(
                             "SM70 (V100): allowing quant=%s (min_capability=%d) "
                             "via the marlin_v100 kernel.",

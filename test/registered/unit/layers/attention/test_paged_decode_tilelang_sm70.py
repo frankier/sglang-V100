@@ -4,8 +4,7 @@ import pytest
 import torch
 
 pytestmark = pytest.mark.skipif(
-    not torch.cuda.is_available()
-    or torch.cuda.get_device_capability() != (7, 0),
+    not torch.cuda.is_available() or torch.cuda.get_device_capability() != (7, 0),
     reason="The grouped TileLang decoder requires an NVIDIA V100",
 )
 

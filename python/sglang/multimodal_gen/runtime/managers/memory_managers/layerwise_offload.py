@@ -56,9 +56,7 @@ class LayerwiseOffloadManager:
         )
         self.copy_stream = torch.get_device_module().Stream()
 
-        self._layer_name_re = re.compile(
-            rf"^{re.escape(layers_attr_str)}\.(\d+)(\.|$)"
-        )
+        self._layer_name_re = re.compile(rf"^{re.escape(layers_attr_str)}\.(\d+)(\.|$)")
 
         # layer_idx -> {dtype: consolidated_pinned_cpu_tensor}
         # stores the consolidated weight from a same layer, of same dtype

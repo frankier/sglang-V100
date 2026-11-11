@@ -9,6 +9,7 @@ import weakref
 
 import torch
 import torch.nn as nn
+
 from sglang.multimodal_gen.runtime.distributed import get_local_torch_device
 from sglang.multimodal_gen.runtime.loader.component_loaders.vae_loader import VAELoader
 from sglang.multimodal_gen.runtime.managers.memory_managers.component_manager import (
@@ -266,9 +267,9 @@ class DecodingStage(PipelineStage):
 
             # decode trajectory latents if needed
             if batch.return_trajectory_decoded:
-                assert batch.trajectory_latents is not None, (
-                    "batch should have trajectory latents"
-                )
+                assert (
+                    batch.trajectory_latents is not None
+                ), "batch should have trajectory latents"
 
                 # 1. Batch trajectory decoding to improve GPU utilization
                 # batch.trajectory_latents is [batch_size, timesteps, channels, frames, height, width]

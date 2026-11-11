@@ -20,7 +20,7 @@ def _smem_forward(block_M, block_N, dim):
 
 
 def _smem_backward(block_M, block_N, dim):
-    """Backward SMEM in bytes: Q_shared + K_shared + V_shared + P_shared (no dO_shared re-use)."""
+    """Backward SMEM in bytes: Q_shared + K_shared + V_shared + P_shared (no dO_shared reuse)."""
     return 4 * dim * (block_M + block_N) + 2 * block_M * block_N
 
 

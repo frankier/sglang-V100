@@ -2419,9 +2419,7 @@ class ModelRunner(ModelRunnerKVCacheMixin):
                 # resolved value.
                 max_warmup_bs = self.max_running_requests
                 warmup_batch_sizes = (
-                    bs
-                    for bs in (1, 2)
-                    if max_warmup_bs is None or bs <= max_warmup_bs
+                    bs for bs in (1, 2) if max_warmup_bs is None or bs <= max_warmup_bs
                 )
                 for warmup_bs in warmup_batch_sizes:
                     self._warmup_prefill_kernels_extends(warmup_bs)
@@ -2463,9 +2461,7 @@ class ModelRunner(ModelRunnerKVCacheMixin):
             dtype=torch.int32,
             device=self.device,
         )
-        dist.all_reduce(
-            status, op=dist.ReduceOp.MIN, group=self.tp_group.device_group
-        )
+        dist.all_reduce(status, op=dist.ReduceOp.MIN, group=self.tp_group.device_group)
         if not status.item():
             raise RuntimeError(
                 "SM70 FlashInfer sampling warmup failed"
@@ -2477,9 +2473,7 @@ class ModelRunner(ModelRunnerKVCacheMixin):
             except Exception as exc:
                 warmup_error = exc
         status.fill_(0 if warmup_error is not None else 1)
-        dist.all_reduce(
-            status, op=dist.ReduceOp.MIN, group=self.tp_group.device_group
-        )
+        dist.all_reduce(status, op=dist.ReduceOp.MIN, group=self.tp_group.device_group)
         if not status.item():
             raise RuntimeError(
                 "SM70 FlashInfer sampling module failed to load"

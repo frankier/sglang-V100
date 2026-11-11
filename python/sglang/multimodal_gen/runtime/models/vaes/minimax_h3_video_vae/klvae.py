@@ -7,7 +7,6 @@ from typing import List, Union
 import numpy as np
 import torch
 import torch.distributed as dist
-import torch.nn as nn
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.loaders.single_file_model import FromOriginalModelMixin
 from diffusers.models import ModelMixin

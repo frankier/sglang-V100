@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Dict, Optional, Tuple
 import msgspec
 import torch
 import torch.nn.functional as F
+
 from sglang.srt.layers.attention.base_attn_backend import AttentionBackend
 from sglang.srt.layers.attention.qsa.config import (
     QSA_VARIANT_COMPRESSED,
@@ -133,9 +134,7 @@ def _resolve_flash_attn_varlen_func():
     except ImportError:
         pass
     try:
-        from flash_attn.cute.interface import (
-            flash_attn_varlen_func as cute_varlen_func,
-        )
+        from flash_attn.cute.interface import flash_attn_varlen_func as cute_varlen_func
 
         def flash_attn_varlen_func(*args, **kwargs):
             output = cute_varlen_func(*args, **kwargs)
@@ -2265,9 +2264,7 @@ class QwenSparseMultiStepDraftBackend:
 
         self.init_forward_metadata_out_graph(forward_batch, in_capture=True)
 
-    def init_forward_metadata_replay_cuda_graph(
-        self, forward_batch, bs: int
-    ) -> None:
+    def init_forward_metadata_replay_cuda_graph(self, forward_batch, bs: int) -> None:
         """Refresh per-step QSA graph metadata before replay."""
 
         if forward_batch.batch_size != bs:

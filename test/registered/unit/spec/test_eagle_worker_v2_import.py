@@ -5,8 +5,7 @@ import textwrap
 
 
 def test_eagle_worker_v2_import_does_not_require_flashinfer_mla_api():
-    code = textwrap.dedent(
-        """
+    code = textwrap.dedent("""
         import importlib.machinery
         import sys
         import types
@@ -24,8 +23,7 @@ def test_eagle_worker_v2_import_does_not_require_flashinfer_mla_api():
         sys.modules["flashinfer"] = flashinfer
 
         import sglang.srt.speculative.eagle_worker_v2
-        """
-    )
+        """)
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = ""
     subprocess.run([sys.executable, "-c", code], check=True, env=env)

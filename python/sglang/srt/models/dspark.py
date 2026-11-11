@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import Iterable, Tuple
 
 import torch
+from torch import nn
+
 from sglang.srt.distributed.communication_op import (
     tensor_model_parallel_all_gather,
 )
 from sglang.srt.model_loader.weight_utils import default_weight_loader
 from sglang.srt.models.dflash import DFlashDraftModel
 from sglang.srt.speculative.dspark_config import parse_dspark_draft_config
-from torch import nn
 
 
 class VanillaMarkov(nn.Module):

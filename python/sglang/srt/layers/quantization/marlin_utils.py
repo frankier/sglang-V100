@@ -566,9 +566,7 @@ def sm70_nvfp4_marlin_process_scales(
 
     num_experts, num_groups, size_n = logical.shape
     if size_n % 4 != 0:
-        raise ValueError(
-            f"SM70 NVFP4 Marlin requires N divisible by 4, got N={size_n}"
-        )
+        raise ValueError(f"SM70 NVFP4 Marlin requires N divisible by 4, got N={size_n}")
     flat = logical.reshape(-1, size_n)
     # The iterator deliberately reverses each pair when expanding metadata.
     flat = flat.view(-1, 4)[:, [0, 2, 1, 3]].reshape(-1, size_n)

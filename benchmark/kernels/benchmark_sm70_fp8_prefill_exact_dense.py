@@ -17,7 +17,6 @@ from sglang.srt.layers.quantization.sm70_turbomind_fp8 import (
     _load_sm70_turbomind_fp8_ops,
 )
 
-
 SHAPES = {
     "gate_up_proj": (5120, 8704, True),
     "down_proj": (4352, 5120, False),
@@ -43,16 +42,16 @@ def timed_ms(fn, warmup: int, repeats: int) -> float:
 
 def run_shape(name: str, m: int, warmup: int, repeats: int) -> None:
     k, n, gated = SHAPES[name]
-    weight = (
-        torch.randn((n, k), device="cuda", dtype=torch.float16) * 0.05
-    ).to(torch.float8_e4m3fn)
+    weight = (torch.randn((n, k), device="cuda", dtype=torch.float16) * 0.05).to(
+        torch.float8_e4m3fn
+    )
     scales = torch.ones(
         ((n + 127) // 128, (k + 127) // 128),
         device="cuda",
         dtype=torch.float32,
     )
-    packed, packed_scales, meta = (
-        torch.ops.sglang_sm70_turbomind.fp8_prepare(weight, scales, 128, gated)
+    packed, packed_scales, meta = torch.ops.sglang_sm70_turbomind.fp8_prepare(
+        weight, scales, 128, gated
     )
     dense = torch.empty((k, n), device="cuda", dtype=torch.float16)
     torch.ops.sglang_sm70_turbomind.fp8_dequantize_out(

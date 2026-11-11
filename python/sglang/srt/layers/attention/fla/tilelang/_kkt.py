@@ -8,10 +8,9 @@
 # lower-triangular, gated, beta-scaled) KKT matrix A; call solve_tril afterwards
 # to obtain (I+A)^-1.
 
-import torch
-
 import tilelang
 import tilelang.language as T
+import torch
 
 tilelang.set_log_level("WARNING")
 
@@ -81,15 +80,14 @@ def _kkt_factory(B, S, H, Hg, Kdim, BT):
                     kv = k[bz, cs + i, hk, ko + j]
                     sh[i, j] = kv * bs[i]
                     sc[i, j] = kv
-                T.gemm(
-                    sh, sc, ac, transpose_B=True, policy=T.GemmWarpPolicy.FullRow
-                )
+                T.gemm(sh, sc, ac, transpose_B=True, policy=T.GemmWarpPolicy.FullRow)
 
             for i, j in T.Parallel(BT, BT):
                 v = ac[i, j] * T.exp(gs[i] - gs[j])
                 A[bz, cs + i, by, j] = (
                     T.cast(v, T.float32) if j < i else T.cast(0, T.float32)
                 )
+
     return main
 
 
@@ -147,9 +145,7 @@ def _kkt_factory_varlen(H, Hg, Kdim, BT):
                     )
                     sh[i, j] = kv * bs[i]
                     sc[i, j] = kv
-                T.gemm(
-                    sh, sc, ac, transpose_B=True, policy=T.GemmWarpPolicy.FullRow
-                )
+                T.gemm(sh, sc, ac, transpose_B=True, policy=T.GemmWarpPolicy.FullRow)
 
             for i, j in T.Parallel(BT, BT):
                 v = ac[i, j] * T.exp(gs[i] - gs[j])
@@ -157,6 +153,7 @@ def _kkt_factory_varlen(H, Hg, Kdim, BT):
                     A[0, cs + i, by, j] = T.cast(v, T.float32)
                 elif cs + i < eos:
                     A[0, cs + i, by, j] = T.cast(0, T.float32)
+
     return main
 
 

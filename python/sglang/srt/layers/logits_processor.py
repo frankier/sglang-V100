@@ -25,8 +25,8 @@ from torch import nn
 from triton.language.extra import libdevice
 
 from sglang.srt.distributed import (
-    get_tp_group,
     get_tensor_model_parallel_world_size,
+    get_tp_group,
     tensor_model_parallel_all_gather,
 )
 from sglang.srt.environ import envs

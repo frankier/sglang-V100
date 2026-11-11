@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 import torch
+
 from sglang.srt.layers import logits_processor
 from sglang.srt.layers.logits_processor import (
     LogitsProcessor,

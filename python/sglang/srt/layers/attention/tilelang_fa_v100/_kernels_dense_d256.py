@@ -42,16 +42,12 @@ def _dense_prefix_d256_kernel(
     qk_warp_policy = (
         T.GemmWarpPolicy.FullRow
         if qk_policy == 1
-        else T.GemmWarpPolicy.FullCol
-        if qk_policy == 2
-        else T.GemmWarpPolicy.Square
+        else T.GemmWarpPolicy.FullCol if qk_policy == 2 else T.GemmWarpPolicy.Square
     )
     pv_warp_policy = (
         T.GemmWarpPolicy.FullRow
         if pv_policy == 1
-        else T.GemmWarpPolicy.FullCol
-        if pv_policy == 2
-        else T.GemmWarpPolicy.Square
+        else T.GemmWarpPolicy.FullCol if pv_policy == 2 else T.GemmWarpPolicy.Square
     )
     gemm = T.gemm_v1 if gemm_version == 1 else T.gemm_v2
 

@@ -8,7 +8,10 @@ repos:
       - id: check-symlinks
       - id: destroyed-symlinks
       - id: trailing-whitespace
+        # Unified diff context and payload whitespace must remain byte-exact.
+        exclude: \.patch$
       - id: end-of-file-fixer
+        exclude: \.patch$
       - id: check-yaml
         args: [--allow-multiple-documents]
         # Helm chart templates embed Go template syntax ({{- ... -}})

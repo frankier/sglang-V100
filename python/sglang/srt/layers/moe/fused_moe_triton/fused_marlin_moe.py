@@ -145,9 +145,9 @@ def fused_marlin_moe(
         and w2_scale.dtype == torch.float8_e4m3fn
     )
     if is_nvfp4_marlin:
-        assert w1_global_scale is not None and w2_global_scale is not None, (
-            "NVFP4 Marlin requires per-expert FP32 global scales"
-        )
+        assert (
+            w1_global_scale is not None and w2_global_scale is not None
+        ), "NVFP4 Marlin requires per-expert FP32 global scales"
         assert w1_global_scale.dtype == torch.float32
         assert w2_global_scale.dtype == torch.float32
     if is_mxfp4_marlin:

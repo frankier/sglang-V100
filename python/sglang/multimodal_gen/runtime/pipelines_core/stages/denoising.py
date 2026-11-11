@@ -18,6 +18,8 @@ from typing import Any
 
 import torch
 import torch.nn as nn
+from tqdm.auto import tqdm
+
 from sglang.jit_kernel.nvfp4 import prewarm_nvfp4_jit_modules
 from sglang.multimodal_gen import envs
 from sglang.multimodal_gen.configs.pipeline_configs.base import ModelTaskType, STA_Mode
@@ -102,7 +104,6 @@ from sglang.multimodal_gen.runtime.utils.perf_logger import StageProfiler
 from sglang.multimodal_gen.runtime.utils.profiler import SGLDiffusionProfiler
 from sglang.multimodal_gen.utils import PRECISION_TO_TYPE, dict_to_3d_list
 from sglang.srt.utils.common import get_compiler_backend
-from tqdm.auto import tqdm
 
 logger = init_logger(__name__)
 
@@ -182,9 +183,7 @@ class DenoisingStage(PipelineStage, RolloutDenoisingMixin):
 
         dit_config = self.server_args.pipeline_config.dit_config
         hidden_size = dit_config.hidden_size
-        num_attention_heads = (
-            dit_config.num_attention_heads
-        )
+        num_attention_heads = dit_config.num_attention_heads
         attn_head_size = getattr(
             dit_config,
             "attention_head_dim",
@@ -1073,9 +1072,9 @@ class DenoisingStage(PipelineStage, RolloutDenoisingMixin):
         # 1. Prepare latent inputs in the model's compute dtype.
         latent_model_input = ctx.latents.to(ctx.target_dtype)
         if batch.image_latent is not None:
-            assert not server_args.pipeline_config.task_type == ModelTaskType.TI2V, (
-                "image latents should not be provided for TI2V task"
-            )
+            assert (
+                not server_args.pipeline_config.task_type == ModelTaskType.TI2V
+            ), "image latents should not be provided for TI2V task"
             latent_model_input = torch.cat(
                 [latent_model_input, batch.image_latent], dim=1
             ).to(ctx.target_dtype)

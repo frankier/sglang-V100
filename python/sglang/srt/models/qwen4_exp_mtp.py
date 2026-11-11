@@ -6,6 +6,9 @@ from contextlib import ExitStack
 from typing import Optional
 
 import torch
+from torch import nn
+from transformers import PretrainedConfig
+
 from sglang.srt.distributed import (
     get_pp_group,
     get_tensor_model_parallel_world_size,
@@ -22,8 +25,6 @@ from sglang.srt.models.qwen3_5_mtp import Qwen3_5ForCausalLMMTP
 from sglang.srt.models.qwen4_exp import Qwen4ExpModel
 from sglang.srt.server_args import get_global_server_args
 from sglang.srt.utils import add_prefix, is_npu
-from torch import nn
-from transformers import PretrainedConfig
 
 logger = logging.getLogger(__name__)
 
