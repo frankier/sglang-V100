@@ -93,8 +93,8 @@ def fused_experts_none_to_marlin(
 
     assert runner_config.activation == "silu", "Only SiLU activation is supported."
 
-    # Qwen3.8 Flash Next's TP4 decode shape is too skinny for Marlin's
-    # block-padded grouped GEMM: M<=4 routes ten rows through I=160 experts.
+    # Qwen3.8 Flash Next's TP4/TP8 decode shapes are too skinny for Marlin's
+    # block-padded grouped GEMM: ten routes through I=160 or padded I=96.
     # On Volta, stream the existing Marlin-repacked NVFP4 tensors directly and
     # split K widely enough to occupy all 80 SMs. Keep Marlin for prefill and
     # every other model/shape.
@@ -102,11 +102,20 @@ def fused_experts_none_to_marlin(
     use_sm70_nvfp4_decode = (
         hidden_states.dtype == torch.float16
         and hidden_states.ndim == 2
-        and 1 <= hidden_states.shape[0] <= 4
+        and 1 <= hidden_states.shape[0] <= 32
         and hidden_states.shape[1] == 2560
         and tuple(topk_output.topk_ids.shape) == (hidden_states.shape[0], 10)
-        and tuple(quant_info.w13_qweight.shape) == (512, 160, 640)
-        and tuple(quant_info.w2_qweight.shape) == (512, 10, 5120)
+        and (
+            (
+                hidden_states.shape[0] <= 4
+                and tuple(quant_info.w13_qweight.shape) == (512, 160, 640)
+                and tuple(quant_info.w2_qweight.shape) == (512, 10, 5120)
+            )
+            or (
+                tuple(quant_info.w13_qweight.shape) == (512, 160, 384)
+                and tuple(quant_info.w2_qweight.shape) == (512, 6, 5120)
+            )
+        )
         and quant_info.weight_bits == 4
         and quant_info.w13_qzeros is None
         and quant_info.w2_qzeros is None

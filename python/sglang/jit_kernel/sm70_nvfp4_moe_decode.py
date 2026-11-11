@@ -74,20 +74,30 @@ def sm70_nvfp4_moe_decode(
     topk_ids: torch.Tensor,
     topk_weights: torch.Tensor,
 ) -> torch.Tensor:
-    """Run the exact TP4 M<=4/H=2560/I=160/top-k=10 decode shape."""
+    """Run M<=32/H=2560/top-k=10 with TP4 I=160 or padded TP8 I=96."""
     ext = _load_sm70_nvfp4_moe_decode_ops()
     if ext is None:
         raise RuntimeError("SM70 NVFP4 MoE decode extension is unavailable")
     batch_size = hidden_states.shape[0]
     num_routes = batch_size * 10
+    intermediate = w2.shape[1] * 16
+    if intermediate not in (96, 160):
+        raise ValueError(
+            f"SM70 NVFP4 decode requires I=96 or I=160, got {intermediate}"
+        )
+    down_splits = 3 if intermediate == 96 else 5
     gate_up_partials = torch.empty(
-        (40, num_routes, 320), dtype=torch.float32, device=hidden_states.device
+        (40, num_routes, 2 * intermediate),
+        dtype=torch.float32,
+        device=hidden_states.device,
     )
     activated = torch.empty(
-        (num_routes, 160), dtype=torch.float16, device=hidden_states.device
+        (num_routes, intermediate), dtype=torch.float16, device=hidden_states.device
     )
     down_partials = torch.empty(
-        (num_routes, 5, 2560), dtype=torch.float32, device=hidden_states.device
+        (num_routes, down_splits, 2560),
+        dtype=torch.float32,
+        device=hidden_states.device,
     )
     output = torch.empty_like(hidden_states)
     ext.decode(
@@ -109,15 +119,13 @@ def sm70_nvfp4_moe_decode(
 
 
 def sm70_topk10_softmax(logits: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    """Select and renormalize ten of 512 logits for up to four rows."""
+    """Select and renormalize ten of 512 logits for up to thirty-two rows."""
     ext = _load_sm70_nvfp4_moe_decode_ops()
     if ext is None:
         raise RuntimeError("SM70 NVFP4 decode extension is unavailable")
     weights = torch.empty(
         (logits.shape[0], 10), dtype=torch.float32, device=logits.device
     )
-    ids = torch.empty(
-        (logits.shape[0], 10), dtype=torch.int32, device=logits.device
-    )
+    ids = torch.empty((logits.shape[0], 10), dtype=torch.int32, device=logits.device)
     ext.topk10_softmax(logits, weights, ids)
     return weights, ids

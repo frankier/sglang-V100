@@ -1,0 +1,99 @@
+--- a/python/sglang/jit_kernel/sm70_nvfp4_moe_decode.py
++++ b/python/sglang/jit_kernel/sm70_nvfp4_moe_decode.py
+@@ -80,25 +80,30 @@
+     topk_ids: torch.Tensor,
+     topk_weights: torch.Tensor,
+ ) -> torch.Tensor:
+-    """Run the exact TP4 M<=32/H=2560/I=160/top-k=10 decode shape.
+-
+-    Serving dispatch remains limited to four rows unless the wider-MTP or
+-    batched-serving experiment is explicitly enabled. Rows are independent;
+-    larger batches use the same arithmetic and reduction order.
+-    """
++    """Run M<=32/H=2560/top-k=10 with TP4 I=160 or padded TP8 I=96."""
+     ext = _load_sm70_nvfp4_moe_decode_ops()
+     if ext is None:
+         raise RuntimeError("SM70 NVFP4 MoE decode extension is unavailable")
+     batch_size = hidden_states.shape[0]
+     num_routes = batch_size * 10
++    intermediate = w2.shape[1] * 16
++    if intermediate not in (96, 160):
++        raise ValueError(
++            f"SM70 NVFP4 decode requires I=96 or I=160, got {intermediate}"
++        )
++    down_splits = 3 if intermediate == 96 else 5
+     gate_up_partials = torch.empty(
+-        (40, num_routes, 320), dtype=torch.float32, device=hidden_states.device
++        (40, num_routes, 2 * intermediate),
++        dtype=torch.float32,
++        device=hidden_states.device,
+     )
+     activated = torch.empty(
+-        (num_routes, 160), dtype=torch.float16, device=hidden_states.device
++        (num_routes, intermediate), dtype=torch.float16, device=hidden_states.device
+     )
+     down_partials = torch.empty(
+-        (num_routes, 5, 2560), dtype=torch.float32, device=hidden_states.device
++        (num_routes, down_splits, 2560),
++        dtype=torch.float32,
++        device=hidden_states.device,
+     )
+     output = torch.empty_like(hidden_states)
+     ext.decode(
+@@ -127,8 +132,6 @@
+     weights = torch.empty(
+         (logits.shape[0], 10), dtype=torch.float32, device=logits.device
+     )
+-    ids = torch.empty(
+-        (logits.shape[0], 10), dtype=torch.int32, device=logits.device
+-    )
++    ids = torch.empty((logits.shape[0], 10), dtype=torch.int32, device=logits.device)
+     ext.topk10_softmax(logits, weights, ids)
+     return weights, ids
+--- a/python/sglang/srt/layers/moe/moe_runner/marlin.py
++++ b/python/sglang/srt/layers/moe/moe_runner/marlin.py
+@@ -5,6 +5,7 @@
+ 
+ import torch
+ from sglang.jit_kernel.sm70_nvfp4_moe_decode import sm70_nvfp4_moe_decode_max_rows
++
+ from sglang.srt.layers.moe.moe_runner.base import (
+     MoeQuantInfo,
+     MoeRunnerConfig,
+@@ -93,8 +94,8 @@
+ 
+     assert runner_config.activation == "silu", "Only SiLU activation is supported."
+ 
+-    # Qwen3.8 Flash Next's TP4 decode shape is too skinny for Marlin's
+-    # block-padded grouped GEMM: small batches route ten rows through I=160 experts.
++    # Qwen3.8 Flash Next's TP4/TP8 decode shapes are too skinny for Marlin's
++    # block-padded grouped GEMM: ten routes through I=160 or padded I=96.
+     # On Volta, stream the existing Marlin-repacked NVFP4 tensors directly and
+     # split K widely enough to occupy all 80 SMs. Keep Marlin for prefill and
+     # every other model/shape.
+@@ -102,13 +103,20 @@
+     use_sm70_nvfp4_decode = (
+         hidden_states.dtype == torch.float16
+         and hidden_states.ndim == 2
+-        and 1
+-        <= hidden_states.shape[0]
+-        <= sm70_nvfp4_moe_decode_max_rows()
++        and 1 <= hidden_states.shape[0] <= 32
+         and hidden_states.shape[1] == 2560
+         and tuple(topk_output.topk_ids.shape) == (hidden_states.shape[0], 10)
+-        and tuple(quant_info.w13_qweight.shape) == (512, 160, 640)
+-        and tuple(quant_info.w2_qweight.shape) == (512, 10, 5120)
++        and (
++            (
++                hidden_states.shape[0] <= sm70_nvfp4_moe_decode_max_rows()
++                and tuple(quant_info.w13_qweight.shape) == (512, 160, 640)
++                and tuple(quant_info.w2_qweight.shape) == (512, 10, 5120)
++            )
++            or (
++                tuple(quant_info.w13_qweight.shape) == (512, 160, 384)
++                and tuple(quant_info.w2_qweight.shape) == (512, 6, 5120)
++            )
++        )
+         and quant_info.weight_bits == 4
+         and quant_info.w13_qzeros is None
+         and quant_info.w2_qzeros is None

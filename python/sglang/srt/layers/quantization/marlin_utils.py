@@ -473,6 +473,57 @@ def sm70_marlin_moe_logical_scales(
     return s.reshape((s.shape[0], -1, size_n)).contiguous()
 
 
+def sm70_nvfp4_marlin_pad_moe_weights(
+    w13: torch.Tensor,
+    w2: torch.Tensor,
+    s13: torch.Tensor,
+    s2: torch.Tensor,
+    is_gated: bool,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Zero-pad TP-local NVFP4 experts to the SM70 Marlin tile boundaries.
+
+    Apply after checkpoint sharding, before repacking or encoding scales.
+    Gate and up must be padded separately so SiLU still splits at the right
+    intermediate dimension. Matching down columns keep the function unchanged.
+    """
+    intermediate = w2.shape[-1] * 2
+    shards = 2 if is_gated else 1
+    if intermediate % 16:
+        raise ValueError("SM70 NVFP4 MoE intermediate size must be divisible by 16")
+    if w13.shape[1] != shards * intermediate:
+        raise ValueError("SM70 NVFP4 MoE gate/up and down dimensions do not match")
+    if shards * intermediate % 64 == 0:
+        return w13, w2, s13, s2
+
+    # TP8 Qwen3.8 has I=80: use I=96 (gate/up N=192, down K=96).
+    # TP4 I=160 already satisfies the repacker and stays byte-for-byte intact.
+    alignment = 64 // shards
+    padded = (intermediate + alignment - 1) // alignment * alignment
+
+    def pad_last(tensor, width):
+        # Float8 padding/cat kernels are not available on every torch backend.
+        raw = tensor.view(torch.uint8)
+        result = raw.new_zeros((*raw.shape[:-1], width))
+        result[..., : raw.shape[-1]] = raw
+        return result.view(tensor.dtype)
+
+    def pad_gate_up(tensor):
+        raw = tensor.view(torch.uint8)
+        result = raw.new_zeros((raw.shape[0], shards * padded, raw.shape[2]))
+        for shard in range(shards):
+            result[:, shard * padded : shard * padded + intermediate] = raw[
+                :, shard * intermediate : (shard + 1) * intermediate
+            ]
+        return result.view(tensor.dtype)
+
+    return (
+        pad_gate_up(w13),
+        pad_last(w2, padded // 2),
+        pad_gate_up(s13),
+        pad_last(s2, padded // 16),
+    )
+
+
 def sm70_nvfp4_marlin_process_scales(
     scales: torch.Tensor, activation_dtype: torch.dtype
 ) -> tuple[torch.Tensor, float]:

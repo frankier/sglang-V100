@@ -1,0 +1,122 @@
+[
+  {
+    "id": "947b05b2ec50421196ebe8e030efb98c",
+    "object": "chat.completion",
+    "created": 1794405659,
+    "model": "qwen",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "4",
+          "reasoning_content": null,
+          "tool_calls": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "matched_stop": 248046
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 26,
+      "total_tokens": 28,
+      "completion_tokens": 2,
+      "prompt_tokens_details": null,
+      "reasoning_tokens": 0
+    },
+    "metadata": {
+      "weight_version": "default"
+    }
+  },
+  {
+    "id": "f98a20f2ac464adba122163214fc6511",
+    "object": "chat.completion",
+    "created": 1794405659,
+    "model": "qwen",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "4",
+          "reasoning_content": null,
+          "tool_calls": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "matched_stop": 248046
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 26,
+      "total_tokens": 28,
+      "completion_tokens": 2,
+      "prompt_tokens_details": null,
+      "reasoning_tokens": 0
+    },
+    "metadata": {
+      "weight_version": "default"
+    }
+  },
+  {
+    "id": "def40a81f100491b8bb2f2713bee6b9d",
+    "object": "chat.completion",
+    "created": 1794405659,
+    "model": "qwen",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "4",
+          "reasoning_content": null,
+          "tool_calls": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "matched_stop": 248046
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 26,
+      "total_tokens": 28,
+      "completion_tokens": 2,
+      "prompt_tokens_details": null,
+      "reasoning_tokens": 0
+    },
+    "metadata": {
+      "weight_version": "default"
+    }
+  },
+  {
+    "id": "81f5a40516744b11abce159dbc3f94a5",
+    "object": "chat.completion",
+    "created": 1794405659,
+    "model": "qwen",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "4",
+          "reasoning_content": null,
+          "tool_calls": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "matched_stop": 248046
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 26,
+      "total_tokens": 28,
+      "completion_tokens": 2,
+      "prompt_tokens_details": null,
+      "reasoning_tokens": 0
+    },
+    "metadata": {
+      "weight_version": "default"
+    }
+  }
+]

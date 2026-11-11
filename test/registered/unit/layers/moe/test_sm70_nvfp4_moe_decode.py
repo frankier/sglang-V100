@@ -7,14 +7,12 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.mark.parametrize("batch_size", [1, 2, 4])
+@pytest.mark.parametrize("batch_size", [1, 2, 4, 8, 16, 32])
 def test_sm70_topk10_softmax_matches_torch(batch_size):
     from sglang.jit_kernel.sm70_nvfp4_moe_decode import sm70_topk10_softmax
 
     torch.manual_seed(100 + batch_size)
-    logits = torch.randn(
-        batch_size, 512, dtype=torch.float16, device="cuda"
-    )
+    logits = torch.randn(batch_size, 512, dtype=torch.float16, device="cuda")
     weights, ids = sm70_topk10_softmax(logits)
 
     probabilities = torch.softmax(logits.float(), dim=-1)
@@ -37,18 +35,10 @@ def test_sm70_nvfp4_moe_four_rows_match_individual_rows():
     torch.manual_seed(11)
     # Ten experts are sufficient for this route-layout test. The serving path
     # supplies all 512; keeping the fixture small avoids a >300 MB allocation.
-    w13 = torch.empty(
-        (10, 160, 640), dtype=torch.int32, device="cuda"
-    ).random_()
-    w2 = torch.empty(
-        (10, 10, 5120), dtype=torch.int32, device="cuda"
-    ).random_()
-    w13_scales = torch.full(
-        (10, 160, 320), 0x70, dtype=torch.uint8, device="cuda"
-    )
-    w2_scales = torch.full(
-        (10, 10, 2560), 0x70, dtype=torch.uint8, device="cuda"
-    )
+    w13 = torch.empty((10, 160, 640), dtype=torch.int32, device="cuda").random_()
+    w2 = torch.empty((10, 10, 5120), dtype=torch.int32, device="cuda").random_()
+    w13_scales = torch.full((10, 160, 320), 0x70, dtype=torch.uint8, device="cuda")
+    w2_scales = torch.full((10, 10, 2560), 0x70, dtype=torch.uint8, device="cuda")
     w13_global = torch.full((10,), 100.0, dtype=torch.float32, device="cuda")
     w2_global = torch.full((10,), 100.0, dtype=torch.float32, device="cuda")
     hidden_states = torch.randn((4, 2560), dtype=torch.float16, device="cuda")
@@ -107,8 +97,12 @@ def test_sm70_topk10_softmax_ties_and_signed_zero(dtype):
     torch.testing.assert_close(weights, expected_weights, rtol=2e-6, atol=3e-8)
 
 
-@pytest.mark.parametrize("batch_size", [1, 4])
-def test_sm70_nvfp4_moe_matches_dequantized_weights(batch_size):
+@pytest.mark.parametrize("batch_size", [1, 4, 8, 32])
+@pytest.mark.parametrize("intermediate", [96, 160])
+@pytest.mark.parametrize("unaligned_scales", [False, True])
+def test_sm70_nvfp4_moe_matches_dequantized_weights(
+    batch_size, intermediate, unaligned_scales
+):
     from sglang.jit_kernel.sm70_nvfp4_moe_decode import sm70_nvfp4_moe_decode
     from sglang.srt.layers.quantization.gptq import gptq_marlin_moe_repack
     from sglang.srt.layers.quantization.marlin_utils import (
@@ -148,25 +142,63 @@ def test_sm70_nvfp4_moe_matches_dequantized_weights(batch_size):
         )
         return packed, encoded, processed_global, dequant
 
-    w13, s13, g13, reference13 = make_weight(320, 2560)
-    w2, s2, g2, reference2 = make_weight(2560, 160)
+    w13, s13, g13, reference13 = make_weight(2 * intermediate, 2560)
+    w2, s2, g2, reference2 = make_weight(2560, intermediate)
+    if unaligned_scales:
+
+        def unalign(tensor):
+            storage = torch.empty(tensor.numel() + 1, dtype=tensor.dtype, device=device)
+            view = storage[1:].view_as(tensor)
+            view.copy_(tensor)
+            return view
+
+        s13, s2 = unalign(s13), unalign(s2)
     x = torch.randn(batch_size, 2560, device=device, dtype=torch.float16)
     ids = torch.rand(batch_size, experts, device=device).topk(10, dim=-1).indices.int()
     ids[:, -1] = -1  # Masked routes must not read stale partials.
+    ids[:, -2] = experts  # Out-of-range routes must be masked as well.
     weights = torch.softmax(torch.randn(batch_size, 10, device=device), dim=-1)
     output = sm70_nvfp4_moe_decode(x, w13, w2, s13, s2, g13, g2, ids, weights)
     reference = torch.zeros_like(x, dtype=torch.float32)
     for row in range(batch_size):
-        for route in range(9):
+        for route in range(8):
             expert = int(ids[row, route])
             gate, up = (reference13[expert] @ x[row].float()).chunk(2)
             activated = (torch.nn.functional.silu(gate) * up).half().float()
             reference[row] += (reference2[expert] @ activated) * weights[row, route]
 
+    stream = torch.cuda.Stream()
+    stream.wait_stream(torch.cuda.current_stream())
+    with torch.cuda.stream(stream):
+        sm70_nvfp4_moe_decode(x, w13, w2, s13, s2, g13, g2, ids, weights)
+    torch.cuda.current_stream().wait_stream(stream)
+    graph = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(graph):
+        captured = sm70_nvfp4_moe_decode(x, w13, w2, s13, s2, g13, g2, ids, weights)
+    graph.replay()
+    graph.replay()
+    torch.testing.assert_close(captured, output, rtol=0, atol=0)
     assert torch.isfinite(output).all()
     # The existing decode contract accumulates each 64/32-element partial in
     # FP16, unlike the independent FP32 reference. Check normalized error so
     # cancellations near zero do not require a loose relative tolerance.
     relative_l2 = (output.float() - reference).norm() / reference.norm()
     assert relative_l2 < 0.003
-    torch.testing.assert_close(output.float(), reference, rtol=0.02, atol=0.01)
+    scaled_max_error = (output.float() - reference).abs().max() / reference.abs().max()
+    assert scaled_max_error < 0.003
+
+    # Replaying must read fresh inputs/routes, including a newly masked route.
+    x.mul_(0.5)
+    ids[:, 0] = -1
+    updated = sm70_nvfp4_moe_decode(x, w13, w2, s13, s2, g13, g2, ids, weights)
+    graph.replay()
+    torch.testing.assert_close(captured, updated, rtol=0, atol=0)
+
+    if batch_size == 1 and intermediate == 96 and not unaligned_scales:
+        with pytest.raises(RuntimeError, match="scale shapes"):
+            sm70_nvfp4_moe_decode(
+                x, w13, w2, s13[:, :-1].contiguous(), s2, g13, g2, ids, weights
+            )
+        strided = torch.empty((1, 5120), device=device, dtype=x.dtype)[:, ::2]
+        with pytest.raises(RuntimeError, match="contiguous"):
+            sm70_nvfp4_moe_decode(strided, w13, w2, s13, s2, g13, g2, ids, weights)
